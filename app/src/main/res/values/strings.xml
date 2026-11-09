@@ -94,4 +94,7 @@
     <string name="draft_discard">Odrzuć</string>
     <string name="scan_save_failed">Nie udało się zapisać zdjęcia. Sprawdź wolne miejsce w telefonie i spróbuj ponownie.</string>
 
+    <!-- Gallery import (Etap 1, #12) -->
+    <string name="scan_gallery_hint">Masz już zdjęcie wizytówki? W skanerze wybierz ikonę galerii.</string>
+
 </resources>
