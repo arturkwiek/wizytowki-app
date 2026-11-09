@@ -66,4 +66,24 @@
     <string name="home_contacts_count">Kontakty w bazie: %d</string>
     <string name="placeholder_note">Ekran w przygotowaniu</string>
 
+    <!-- Scanner prototype (Etap 1, #7) -->
+    <string name="proto_title">Prototyp skanera</string>
+    <string name="proto_intro">Porównaj dwa sposoby skanowania i wybierz lepszy.</string>
+    <string name="proto_mlkit">ML Kit Document Scanner</string>
+    <string name="proto_mlkit_desc">Gotowy ekran Google: wykrywanie krawędzi, kadrowanie, prostowanie, import z galerii.</string>
+    <string name="proto_camerax">CameraX</string>
+    <string name="proto_camerax_desc">Własny podgląd aparatu. Bez wykrywania krawędzi i prostowania – wymagałyby własnej implementacji.</string>
+    <string name="proto_take_photo">Zrób zdjęcie</string>
+    <string name="proto_open_scanner">Otwórz skaner</string>
+    <string name="proto_retake_front">Ponów przód</string>
+    <string name="proto_retake_back">Ponów tył</string>
+    <string name="proto_start_over">Zmień metodę</string>
+    <string name="proto_side_front">Przód</string>
+    <string name="proto_side_back">Tył</string>
+    <string name="proto_back_skipped">Tył pominięty</string>
+    <string name="proto_resolution">%1$d × %2$d px</string>
+    <string name="proto_camera_permission">Aparat jest potrzebny do zrobienia zdjęcia wizytówki. Zdjęcia zostają w telefonie.</string>
+    <string name="proto_grant_permission">Zezwól na aparat</string>
+    <string name="proto_done">Gotowe – obie strony zebrane</string>
+
 </resources>
