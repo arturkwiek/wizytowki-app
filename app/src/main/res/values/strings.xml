@@ -85,4 +85,13 @@
     <string name="quality_too_bright">Zdjęcie jest prześwietlone – unikaj odblasku lampy.</string>
     <string name="quality_use_anyway">Użyj mimo to</string>
 
+    <!-- Scan draft (Etap 1, #11) -->
+    <string name="draft_title">Masz przerwany skan</string>
+    <string name="draft_front_only">Zeskanowany przód – brakuje tyłu.</string>
+    <string name="draft_back_only">Brakuje zdjęcia przodu.</string>
+    <string name="draft_both_sides">Obie strony zeskanowane – dokończ weryfikację.</string>
+    <string name="draft_resume">Wznów</string>
+    <string name="draft_discard">Odrzuć</string>
+    <string name="scan_save_failed">Nie udało się zapisać zdjęcia. Sprawdź wolne miejsce w telefonie i spróbuj ponownie.</string>
+
 </resources>
