@@ -12,8 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -31,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wizytowki.R
 import com.wizytowki.scan.DecodedImage
+import com.wizytowki.scan.QualityIssue
 import com.wizytowki.scan.ScanSession.Step
 import com.wizytowki.scan.decodePreview
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +63,16 @@ fun ScanScreen(viewModel: ScanViewModel, onCancel: () -> Unit, onDone: () -> Uni
             openScanner()
         }
     }
+    state.qualityWarning?.let { warning ->
+        QualityWarningDialog(
+            warning = warning,
+            onRetake = {
+                viewModel.retakeAfterWarning()
+                openScanner()
+            },
+            onAccept = viewModel::acceptQualityWarning,
+        )
+    }
     LaunchedEffect(state.navigateToPreview) {
         if (state.navigateToPreview) {
             viewModel.onNavigatedToPreview()
@@ -78,6 +94,10 @@ fun ScanScreen(viewModel: ScanViewModel, onCancel: () -> Unit, onDone: () -> Uni
         )
         if (state.scannerUnavailable) {
             Text(stringResource(R.string.scan_unavailable), color = MaterialTheme.colorScheme.error)
+        }
+        if (state.checkingQuality) {
+            Text(stringResource(R.string.scan_checking_quality), style = MaterialTheme.typography.bodyMedium)
+            LinearProgressIndicator(Modifier.fillMaxWidth())
         }
         if (session.frontUri != null || session.backUri != null || session.backSkipped) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -111,6 +131,34 @@ fun ScanScreen(viewModel: ScanViewModel, onCancel: () -> Unit, onDone: () -> Uni
             }
         }
     }
+}
+
+/** WF-04: asks only when the photo looks unreadable (UI-02); keeping it is one tap. */
+@Composable
+private fun QualityWarningDialog(warning: QualityWarning, onRetake: () -> Unit, onAccept: () -> Unit) {
+    val side = stringResource(if (warning.side == CardSide.FRONT) R.string.scan_side_front else R.string.scan_side_back)
+    AlertDialog(
+        onDismissRequest = onAccept,
+        icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
+        title = { Text(stringResource(R.string.quality_title, side)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                warning.issues.sortedBy { it.ordinal }.forEach { issue ->
+                    Text(
+                        stringResource(
+                            when (issue) {
+                                QualityIssue.BLURRY -> R.string.quality_blurry
+                                QualityIssue.TOO_DARK -> R.string.quality_too_dark
+                                QualityIssue.TOO_BRIGHT -> R.string.quality_too_bright
+                            }
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = { Button(onRetake) { Text(stringResource(R.string.scan_retake)) } },
+        dismissButton = { TextButton(onAccept) { Text(stringResource(R.string.quality_use_anyway)) } },
+    )
 }
 
 @Composable

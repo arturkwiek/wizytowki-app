@@ -77,4 +77,12 @@
     <string name="action_next">Dalej</string>
     <string name="scan_unavailable">Skaner jest niedostępny. Sprawdź, czy Usługi Google Play są zainstalowane i aktualne.</string>
 
+    <!-- Photo quality (Etap 1, #10) -->
+    <string name="scan_checking_quality">Sprawdzanie jakości zdjęcia…</string>
+    <string name="quality_title">%1$s: słaba jakość zdjęcia</string>
+    <string name="quality_blurry">Zdjęcie może być nieostre – tekst może się nie odczytać.</string>
+    <string name="quality_too_dark">Zdjęcie jest za ciemne – dodaj światła.</string>
+    <string name="quality_too_bright">Zdjęcie jest prześwietlone – unikaj odblasku lampy.</string>
+    <string name="quality_use_anyway">Użyj mimo to</string>
+
 </resources>

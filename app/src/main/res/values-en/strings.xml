@@ -77,4 +77,12 @@
     <string name="action_next">Next</string>
     <string name="scan_unavailable">The scanner is unavailable. Check that Google Play services is installed and up to date.</string>
 
+    <!-- Photo quality (Etap 1, #10) -->
+    <string name="scan_checking_quality">Checking photo quality…</string>
+    <string name="quality_title">%1$s: poor photo quality</string>
+    <string name="quality_blurry">The photo may be blurry – text may not be readable.</string>
+    <string name="quality_too_dark">The photo is too dark – add more light.</string>
+    <string name="quality_too_bright">The photo is overexposed – avoid glare from the flash.</string>
+    <string name="quality_use_anyway">Use anyway</string>
+
 </resources>
