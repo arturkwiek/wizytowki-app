@@ -1,7 +1,7 @@
 # ADR 0001: Skaner wizytówek – ML Kit Document Scanner
 
 - **Status:** przyjęta (właściciel, 2026-11-09, PR #82)
-- **Zadania:** #7 (prototyp), #8 (przepływ), #9 (krawędzie, kadrowanie, prostowanie)
+- **Zadania:** #7 (prototyp), #8 (przepływ), #9 (krawędzie, kadrowanie, prostowanie), #12 (import z galerii)
 
 ## Kontekst
 Etap 1 wymaga zdjęcia przodu i tyłu wizytówki z automatycznym wykrywaniem krawędzi, kadrowaniem
@@ -23,7 +23,7 @@ wynik JPEG, import z galerii włączony (`ui/scan/DocumentScanner.kt`). CameraX 
 | UI-04 automatyczne zdjęcie | ML Kit (auto-capture), z możliwością ręcznego | skaner Google |
 | WF-05 ponowienie strony | ML Kit („Ponów” w podglądzie) + nasze „Ponów przód/tył” | skaner + `ScanScreen` |
 | WF-04 kontrola jakości | ML Kit tylko częściowo – własna analiza ostrości i jasności | #10 |
-| WF-06 import z galerii | ML Kit (`setGalleryImportAllowed(true)`) | skaner Google, #12 |
+| WF-06 import z galerii | ML Kit (`setGalleryImportAllowed(true)`); wybrane zdjęcie też jest kadrowane i prostowane; podpowiedź na naszych ekranach | skaner Google, `ScanScreen` (#12) |
 | WNF-04 uprawnienia | brak uprawnienia CAMERA – zdjęcie robi proces Play services | `AndroidManifest.xml` |
 
 ## Konsekwencje
@@ -40,3 +40,11 @@ wynik JPEG, import z galerii włączony (`ui/scan/DocumentScanner.kt`). CameraX 
 - Wizytówka pod kątem ~30° – wynik prostokątny, bez tła.
 - Wizytówka na podobnym kolorystycznie tle (np. biała na białym) – czy krawędzie są wykryte.
 - Błyszcząca / ciemna wizytówka.
+
+## Import z galerii (#12)
+Przycisk „Importuj z galerii” jest w skanerze (obok spustu). Skaner otwiera systemowy wybór zdjęć,
+więc aplikacja **nie potrzebuje uprawnień do pamięci** i dostaje tylko wybrane zdjęcie
+(skaner pokazuje komunikat, że aplikacja ma dostęp tylko do zeskanowanych obrazów).
+Wybrane zdjęcie przechodzi to samo wykrywanie krawędzi, kadrowanie, kontrolę jakości (#10) i zapis szkicu (#11).
+W trybie „Auto” skaner może zrobić zdjęcie, zanim użytkownik dotknie ikony galerii;
+wtedy wystarczy „Ponów” w podglądzie skanera i wybór galerii (albo przełączenie na tryb ręczny).
