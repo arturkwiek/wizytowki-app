@@ -1,6 +1,6 @@
 # Plan rozwoju
 
-Pełna wersja z ryzykami: dokument „Plan rozwoju – aplikacja do wizytówek (Android)”. Bieżący etap: **0**.
+Pełna wersja z ryzykami: dokument „Plan rozwoju – aplikacja do wizytówek (Android)”. Bieżący etap: **1**.
 
 ## Etap 0. Fundamenty
 - Projekt Android Studio: Kotlin, Jetpack Compose, minSdk 26

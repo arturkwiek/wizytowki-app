@@ -26,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wizytowki.ui.home.HomeViewModel
+import com.wizytowki.ui.scan.ScanPrototypeScreen
 import com.wizytowki.ui.theme.WizytowkiAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -84,7 +85,8 @@ fun WizytowkiNavigation() {
             )
         }
         composable(Routes.SCAN) {
-            PlaceholderScreen(navController, R.string.nav_scan, links = listOf(NavLink(R.string.screen_scan_front, Routes.SCAN_FRONT)))
+            // Etap 1 (#7): scanner prototype; SCAN_FRONT/SCAN_BACK get the chosen implementation in #8.
+            ScanPrototypeScreen(onBack = { navController.popBackStack() }, viewModel = hiltViewModel())
         }
         composable(Routes.SCAN_FRONT) {
             PlaceholderScreen(navController, R.string.screen_scan_front, links = listOf(NavLink(R.string.screen_scan_back, Routes.SCAN_BACK)))

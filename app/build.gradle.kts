@@ -86,7 +86,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
-    // ML Kit, CameraX, Document Scanner itd. dochodzą w etapach 1–3 (AGENTS.md: tylko bieżący etap).
+    // Etap 1 (#7): prototyp – porównanie ML Kit Document Scanner i CameraX; przegrany wariant usuwamy w #8.
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
+    // ML Kit OCR itd. dochodzą w etapie 2 (AGENTS.md: tylko bieżący etap).
     // SpeechRecognizer jest częścią frameworka Androida (android.speech) – nie wymaga zależności.
 
     // Testing
