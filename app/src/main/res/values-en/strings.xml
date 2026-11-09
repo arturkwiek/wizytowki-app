@@ -56,4 +56,14 @@
     <string name="error_occurred">Error: %s</string>
     <string name="permission_required">Required permission: %s</string>
 
+    <!-- Placeholder screens (Etap 0) -->
+    <string name="screen_scan_front">Scan – front</string>
+    <string name="screen_scan_back">Scan – back</string>
+    <string name="screen_contact_detail">Contact card</string>
+    <string name="screen_company_detail">Company card</string>
+    <string name="screen_duplicate">Duplicate</string>
+    <string name="action_back">Back</string>
+    <string name="home_contacts_count">Contacts in database: %d</string>
+    <string name="placeholder_note">Screen under construction</string>
+
 </resources>

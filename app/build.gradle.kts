@@ -42,7 +42,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     packaging {
@@ -86,27 +86,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
-    // ML Kit for OCR (Text Recognition)
-    implementation("com.google.mlkit:text-recognition:16.0.0")
-    implementation("com.google.mlkit:language-id:17.0.5")
-
-    // CameraX
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
-
-    // ML Kit Document Scanner
-    implementation("com.google.mlkit:document-scanner:16.0.0-beta1")
-
-    // SpeechRecognizer (Speech-to-Text)
-    implementation("com.google.android.gms:play-services-mlkit-speech-recognition:16.3.0")
-
-    // Serialization (for test data)
-    implementation("com.google.code.gson:gson:2.10.1")
-
-    // Preferences
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    // ML Kit, CameraX, Document Scanner itd. dochodzą w etapach 1–3 (AGENTS.md: tylko bieżący etap).
+    // SpeechRecognizer jest częścią frameworka Androida (android.speech) – nie wymaga zależności.
 
     // Testing
     testImplementation("junit:junit:4.13.2")

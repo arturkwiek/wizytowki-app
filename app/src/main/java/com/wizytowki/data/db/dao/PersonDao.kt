@@ -21,6 +21,9 @@ interface PersonDao {
     @Query("SELECT * FROM persons ORDER BY lastName, firstName")
     fun getAllPersons(): Flow<List<PersonEntity>>
 
+    @Query("SELECT COUNT(*) FROM persons")
+    fun countPersons(): Flow<Int>
+
     @Query("SELECT * FROM persons WHERE firstName LIKE :query OR lastName LIKE :query")
     fun searchPersons(query: String): Flow<List<PersonEntity>>
 

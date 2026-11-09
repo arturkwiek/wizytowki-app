@@ -5,14 +5,14 @@ Ten dokument opisuje, jak w pełni zautomatyzować repozytorium zgodnie z wymaga
 ## Zrobione (Etap 0: Fundamenty)
 
 ✅ **Struktura Android Studio**
-- Kotlin 1.9.24, Gradle 8.4
+- Kotlin 1.9.24, Gradle 8.7, AGP 8.4.1, Compose compiler 1.5.14
 - Jetpack Compose, Material Design 3
 - minSdk 26, targetSdk 34
 
 ✅ **Architektura**
 - MVVM z Hilt (dependency injection)
 - Coroutines i Flow dla asynchroności
-- Room z SQLCipher dla bezpiecznej bazy
+- Room z SQLCipher; losowy klucz bazy chroniony przez Android Keystore
 
 ✅ **Model danych**
 - Encje: Person, Company, EmploymentHistory, BusinessCard
@@ -110,8 +110,7 @@ wizytowki-app/
 │   │   └── AndroidManifest.xml
 │   └── test/                        (testy jednostkowe)
 ├── docs/
-│   ├── ROADMAP.md                   (5 etapów rozwoju)
-│   └── PLAN.md                      (plan szczegółowy)
+│   └── ROADMAP.md                   (5 etapów rozwoju)
 ├── test-data/
 │   ├── cards/                       (zdjęcia wizytówek)
 │   └── expected/                    (oczekiwane wyniki JSON)
@@ -122,7 +121,7 @@ wizytowki-app/
 └── gradlew / gradlew.bat            (Gradle wrapper)
 ```
 
-## Wskaźniki post-mercy (monitoring)
+## Wskaźniki (monitoring)
 
 ### CI/CD status
 - ✅ Jeśli wszystkie testy przechodzą na każdy PR
@@ -134,7 +133,7 @@ wizytowki-app/
 - Czas analizy < 3 sekund
 
 ### Timing
-- Etap 0: Fundamenty ✅ (DONE)
+- Etap 0: Fundamenty – w trakcie (PR z poprawkami buildu)
 - Etap 1: Skanowanie (~2-3 tygodnie)
 - Etap 2: OCR (~2-3 tygodnie)
 - Etap 3: Weryfikacja (1-2 tygodnia)
@@ -143,6 +142,14 @@ wizytowki-app/
 
 ## Troubleshooting
 
+### Budowanie lokalnie na Windows
+Java jest dołączona do Android Studio:
+```bash
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
+./gradlew lint testDebugUnitTest assembleDebug
+```
+`local.properties` (ignorowany przez git): `sdk.dir=C:/Users/<user>/AppData/Local/Android/Sdk`
+
 ### `gradlew: command not found`
 ```bash
 chmod +x gradlew    # Linux/Mac
@@ -150,8 +157,9 @@ chmod +x gradlew    # Linux/Mac
 ```
 
 ### Baza danych nie szyfruje się
-- Upewnij się, że `SQLCipher` jest zainstalowany (w `build.gradle.kts` ✅)
-- Domyślna passphrase: `"default_passphrase"` (zmienić w DatabaseModule)
+- Klucz generuje `DatabaseKeyProvider` (losowe 32 B, opakowane kluczem AES z Android Keystore, zapisane w `shared_prefs/wizytowki_db_key.xml`).
+- Sprawdzenie na emulatorze: `adb exec-out run-as com.wizytowki head -c 16 databases/wizytowki.db` – nie może zaczynać się od `SQLite format 3`.
+- Backup Androida jest wyłączony – klucz z Keystore nie przenosi się na inne urządzenie.
 
 ### Testy nie znajdują Room tables
 - Upewnij się, że `@Entity` jest dodany do klas

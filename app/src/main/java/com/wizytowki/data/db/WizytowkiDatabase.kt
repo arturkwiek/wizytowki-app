@@ -14,7 +14,6 @@ import com.wizytowki.data.db.dao.PersonDao
 import com.wizytowki.data.db.dao.CompanyDao
 import com.wizytowki.data.db.dao.EmploymentHistoryDao
 import com.wizytowki.data.db.dao.BusinessCardDao
-import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -40,9 +39,11 @@ abstract class WizytowkiDatabase : RoomDatabase() {
         @Volatile
         private var instance: WizytowkiDatabase? = null
 
-        fun getInstance(context: Context, passphrase: String = "default_passphrase"): WizytowkiDatabase {
+        fun getInstance(context: Context, passphrase: ByteArray): WizytowkiDatabase {
             return instance ?: synchronized(this) {
-                val factory = SupportFactory(SQLiteDatabase.getBytes(passphrase.toCharArray()))
+                instance?.let { return it }
+                // SupportFactory clears the passphrase array after opening the database.
+                val factory = SupportFactory(passphrase)
                 val db = Room.databaseBuilder(
                     context.applicationContext,
                     WizytowkiDatabase::class.java,
