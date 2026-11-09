@@ -95,6 +95,12 @@ fun ScanScreen(viewModel: ScanViewModel, onCancel: () -> Unit, onDone: () -> Uni
         if (state.scannerUnavailable) {
             Text(stringResource(R.string.scan_unavailable), color = MaterialTheme.colorScheme.error)
         }
+        if (state.saveFailed) {
+            Text(stringResource(R.string.scan_save_failed), color = MaterialTheme.colorScheme.error)
+        }
+        if (state.busy) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
         if (state.checkingQuality) {
             Text(stringResource(R.string.scan_checking_quality), style = MaterialTheme.typography.bodyMedium)
             LinearProgressIndicator(Modifier.fillMaxWidth())

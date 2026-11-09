@@ -1,12 +1,15 @@
 package com.wizytowki.ui.scan
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wizytowki.scan.DraftStore
 import com.wizytowki.scan.QualityChecker
 import com.wizytowki.scan.QualityIssue
 import com.wizytowki.scan.ScanSession
 import com.wizytowki.scan.ScanSession.Step
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +24,12 @@ data class QualityWarning(val side: CardSide, val issues: Set<QualityIssue>)
 
 data class ScanUiState(
     val session: ScanSession = ScanSession(),
+    /** Draft is being loaded (resume) or a scanned image is being stored. */
+    val busy: Boolean = false,
     /** Scanner could not start (e.g. Google Play services missing). */
     val scannerUnavailable: Boolean = false,
+    /** Saving a scanned image failed (e.g. storage full). */
+    val saveFailed: Boolean = false,
     /** Front scanner is opened automatically only once per session (UI-01: minimum taps). */
     val frontAutoLaunched: Boolean = false,
     /** Quality analysis of the last scan is running. */
@@ -32,46 +39,77 @@ data class ScanUiState(
     val navigateToPreview: Boolean = false,
 )
 
-/** Front/back scanning flow (WF-01, WF-02, WF-04, WF-05, UI-02, UI-05). */
+/**
+ * Front/back scanning flow (WF-01, WF-02, WF-04, WF-05, UI-02, UI-05) with a persisted draft (UI-09, WF-25):
+ * every step is saved, so an interrupted scan – even after the process is killed – can be resumed.
+ */
 @HiltViewModel
 class ScanViewModel @Inject constructor(
     private val qualityChecker: QualityChecker,
+    private val draftStore: DraftStore,
+    private val savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(ScanUiState())
+    /** Resume when asked to, or when the system recreated this screen in the middle of a scan. */
+    private val resume: Boolean = savedState.get<Boolean>(ARG_RESUME) == true || savedState.get<Boolean>(KEY_STARTED) == true
+
+    private val _state = MutableStateFlow(ScanUiState(busy = true, frontAutoLaunched = resume))
     val state: StateFlow<ScanUiState> = _state.asStateFlow()
+
+    private val initJob: Job = viewModelScope.launch {
+        val session = if (resume) {
+            draftStore.load() ?: ScanSession()
+        } else {
+            draftStore.clear()
+            ScanSession()
+        }
+        savedState[KEY_STARTED] = true
+        _state.update { it.copy(session = session, busy = false) }
+    }
 
     fun onFrontAutoLaunched() = _state.update { it.copy(frontAutoLaunched = true) }
 
-    fun onScanned(uri: String) {
-        val side = when (_state.value.session.step) {
-            Step.FRONT -> CardSide.FRONT
-            Step.BACK -> CardSide.BACK
-            Step.DONE -> return
-        }
-        _state.update {
-            it.copy(
-                session = it.session.withCapture(uri),
-                scannerUnavailable = false,
-                checkingQuality = true,
-                qualityWarning = null,
-            )
-        }
+    fun onScanned(sourceUri: String) {
         viewModelScope.launch {
-            val issues = qualityChecker.check(uri)?.issues.orEmpty()
-            _state.update { current ->
-                // Ignore a stale result if the side was retaken meanwhile.
-                val stillCurrent = when (side) {
-                    CardSide.FRONT -> current.session.frontUri == uri
-                    CardSide.BACK -> current.session.backUri == uri
-                }
-                if (!stillCurrent) return@update current
-                val warning = issues.takeIf { it.isNotEmpty() }?.let { QualityWarning(side, it) }
-                current.copy(
-                    checkingQuality = false,
-                    qualityWarning = warning,
-                    navigateToPreview = warning == null && current.session.step == Step.DONE,
+            initJob.join()
+            val side = when (_state.value.session.step) {
+                Step.FRONT -> CardSide.FRONT
+                Step.BACK -> CardSide.BACK
+                Step.DONE -> return@launch
+            }
+            _state.update { it.copy(busy = true, saveFailed = false, scannerUnavailable = false) }
+            val stored = runCatching { draftStore.importImage(sourceUri, side.name.lowercase()) }.getOrNull()
+            if (stored == null) {
+                _state.update { it.copy(busy = false, saveFailed = true) }
+                return@launch
+            }
+            _state.update {
+                it.copy(
+                    session = it.session.withCapture(stored),
+                    busy = false,
+                    checkingQuality = true,
+                    qualityWarning = null,
                 )
             }
+            persist()
+            checkQuality(side, stored)
+        }
+    }
+
+    private suspend fun checkQuality(side: CardSide, uri: String) {
+        val issues = qualityChecker.check(uri)?.issues.orEmpty()
+        _state.update { current ->
+            // Ignore a stale result if the side was retaken meanwhile.
+            val stillCurrent = when (side) {
+                CardSide.FRONT -> current.session.frontUri == uri
+                CardSide.BACK -> current.session.backUri == uri
+            }
+            if (!stillCurrent) return@update current
+            val warning = issues.takeIf { it.isNotEmpty() }?.let { QualityWarning(side, it) }
+            current.copy(
+                checkingQuality = false,
+                qualityWarning = warning,
+                navigateToPreview = warning == null && current.session.step == Step.DONE,
+            )
         }
     }
 
@@ -89,23 +127,43 @@ class ScanViewModel @Inject constructor(
         }
     }
 
-    fun skipBack() = _state.update { current ->
-        val session = current.session.skipBack()
-        current.copy(
-            session = session,
-            navigateToPreview = current.session.step != Step.DONE && session.step == Step.DONE,
-        )
+    fun skipBack() {
+        _state.update { current ->
+            val session = current.session.skipBack()
+            current.copy(
+                session = session,
+                navigateToPreview = current.session.step != Step.DONE && session.step == Step.DONE,
+            )
+        }
+        persistAsync()
     }
 
-    fun retakeFront() = _state.update {
-        it.copy(session = it.session.retakeFront(), qualityWarning = null, checkingQuality = false)
+    fun retakeFront() {
+        _state.update { it.copy(session = it.session.retakeFront(), qualityWarning = null, checkingQuality = false) }
+        persistAsync()
     }
 
-    fun retakeBack() = _state.update {
-        it.copy(session = it.session.retakeBack(), qualityWarning = null, checkingQuality = false)
+    fun retakeBack() {
+        _state.update { it.copy(session = it.session.retakeBack(), qualityWarning = null, checkingQuality = false) }
+        persistAsync()
     }
 
     fun onScannerUnavailable() = _state.update { it.copy(scannerUnavailable = true) }
 
     fun onNavigatedToPreview() = _state.update { it.copy(navigateToPreview = false) }
+
+    private fun persistAsync() {
+        viewModelScope.launch { persist() }
+    }
+
+    private suspend fun persist() {
+        initJob.join()
+        runCatching { draftStore.save(_state.value.session) }
+    }
+
+    companion object {
+        /** Navigation argument: resume the saved draft instead of starting a new scan. */
+        const val ARG_RESUME = "resume"
+        private const val KEY_STARTED = "scan_started"
+    }
 }

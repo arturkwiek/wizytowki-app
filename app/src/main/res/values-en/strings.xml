@@ -85,4 +85,13 @@
     <string name="quality_too_bright">The photo is overexposed – avoid glare from the flash.</string>
     <string name="quality_use_anyway">Use anyway</string>
 
+    <!-- Scan draft (Etap 1, #11) -->
+    <string name="draft_title">You have an interrupted scan</string>
+    <string name="draft_front_only">Front scanned – back missing.</string>
+    <string name="draft_back_only">Front photo missing.</string>
+    <string name="draft_both_sides">Both sides scanned – finish the review.</string>
+    <string name="draft_resume">Resume</string>
+    <string name="draft_discard">Discard</string>
+    <string name="scan_save_failed">Could not save the photo. Check free storage on the phone and try again.</string>
+
 </resources>

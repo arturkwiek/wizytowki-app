@@ -22,11 +22,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.wizytowki.ui.home.DraftCard
 import com.wizytowki.ui.home.HomeViewModel
 import com.wizytowki.ui.scan.ScanScreen
+import com.wizytowki.ui.scan.ScanViewModel
 import com.wizytowki.ui.theme.WizytowkiAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -50,13 +54,14 @@ class MainActivity : ComponentActivity() {
 /** Route names for the 9 screens; real screens replace the placeholders in later stages. */
 object Routes {
     const val HOME = "home"
-    const val SCAN = "scan"
+    const val SCAN = "scan?${ScanViewModel.ARG_RESUME}={${ScanViewModel.ARG_RESUME}}"
     const val PREVIEW = "preview"
     const val DUPLICATE = "duplicate"
     const val CONTACT_DETAIL = "contact_detail/{id}"
     const val COMPANY_DETAIL = "company_detail/{id}"
     const val SETTINGS = "settings"
 
+    fun scan(resume: Boolean = false) = if (resume) "scan?${ScanViewModel.ARG_RESUME}=true" else "scan"
     fun contactDetail(id: Long) = "contact_detail/$id"
     fun companyDetail(id: Long) = "company_detail/$id"
 }
@@ -71,18 +76,31 @@ fun WizytowkiNavigation() {
         composable(Routes.HOME) {
             val viewModel: HomeViewModel = hiltViewModel()
             val contactCount by viewModel.contactCount.collectAsState()
+            val draft by viewModel.draft.collectAsState()
             PlaceholderScreen(
                 navController, R.string.nav_home, showBack = false,
                 subtitle = stringResource(R.string.home_contacts_count, contactCount),
+                header = {
+                    draft?.let {
+                        DraftCard(
+                            draft = it,
+                            onResume = { navController.navigate(Routes.scan(resume = true)) },
+                            onDiscard = viewModel::discardDraft,
+                        )
+                    }
+                },
                 links = listOf(
-                    NavLink(R.string.nav_scan, Routes.SCAN),
+                    NavLink(R.string.nav_scan, Routes.scan()),
                     NavLink(R.string.screen_contact_detail, Routes.contactDetail(1)),
                     NavLink(R.string.screen_company_detail, Routes.companyDetail(1)),
                     NavLink(R.string.nav_settings, Routes.SETTINGS),
                 )
             )
         }
-        composable(Routes.SCAN) {
+        composable(
+            Routes.SCAN,
+            arguments = listOf(navArgument(ScanViewModel.ARG_RESUME) { type = NavType.BoolType; defaultValue = false }),
+        ) {
             // Screens "Aparat – przód" and "Aparat – tył" (REQUIREMENTS 8a) share one ViewModel.
             ScanScreen(
                 viewModel = hiltViewModel(),
@@ -117,6 +135,7 @@ private fun PlaceholderScreen(
     links: List<NavLink> = emptyList(),
     showBack: Boolean = true,
     subtitle: String? = null,
+    header: @Composable () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -124,6 +143,7 @@ private fun PlaceholderScreen(
     ) {
         Text(stringResource(title), style = MaterialTheme.typography.headlineMedium)
         Text(subtitle ?: stringResource(R.string.placeholder_note), style = MaterialTheme.typography.bodyMedium)
+        header()
         links.forEach { link ->
             Button(onClick = { navController.navigate(link.route) }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(link.label))
