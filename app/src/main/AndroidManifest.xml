@@ -3,13 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        CAMERA: tylko dla prototypu CameraX (#7). ML Kit Document Scanner działa w procesie
-        Google Play services i nie wymaga tego uprawnienia. RECORD_AUDIO i lokalizacja – w etapie 3.
+        Brak uprawnienia CAMERA: ML Kit Document Scanner robi zdjęcia w procesie Google Play services
+        (decyzja w PR #82). RECORD_AUDIO i lokalizacja – w etapie 3, z wyjaśnieniem celu (WNF-04).
     -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature
-        android:name="android.hardware.camera.any"
-        android:required="false" />
 
     <!-- Backup wyłączony: baza jest szyfrowana kluczem z Android Keystore, który nie przenosi się
          na inne urządzenie, a dane kontaktowe nie powinny trafiać do chmury (eksport ręczny – Etap 5). -->
