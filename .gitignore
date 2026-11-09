@@ -10,3 +10,6 @@
 .cxx
 *.keystore
 *.jks
+
+# Zdjęcia prawdziwych wizytówek właściciela – tylko lokalnie (dane osobowe, AGENTS.md)
+/test-data/samples/
