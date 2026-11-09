@@ -2,21 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Required permissions -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!--
+        Uprawnienia (CAMERA, RECORD_AUDIO, lokalizacja) dodajemy w etapach, które ich używają,
+        razem z wyjaśnieniem celu dla użytkownika (REQUIREMENTS / Etap 5).
+    -->
 
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="true" />
-
+    <!-- Backup wyłączony: baza jest szyfrowana kluczem z Android Keystore, który nie przenosi się
+         na inne urządzenie, a dane kontaktowe nie powinny trafiać do chmury (eksport ręczny – Etap 5). -->
     <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_descriptor"
+        android:name=".WizytowkiApplication"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.WizytowkiApp"

@@ -56,4 +56,14 @@
     <string name="error_occurred">Błąd: %s</string>
     <string name="permission_required">Wymagane uprawnienie: %s</string>
 
+    <!-- Placeholder screens (Etap 0) -->
+    <string name="screen_scan_front">Skan – przód</string>
+    <string name="screen_scan_back">Skan – tył</string>
+    <string name="screen_contact_detail">Karta osoby</string>
+    <string name="screen_company_detail">Karta firmy</string>
+    <string name="screen_duplicate">Duplikat</string>
+    <string name="action_back">Wstecz</string>
+    <string name="home_contacts_count">Kontakty w bazie: %d</string>
+    <string name="placeholder_note">Ekran w przygotowaniu</string>
+
 </resources>
