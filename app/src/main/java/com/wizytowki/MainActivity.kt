@@ -26,7 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wizytowki.ui.home.HomeViewModel
-import com.wizytowki.ui.scan.ScanPrototypeScreen
+import com.wizytowki.ui.scan.ScanScreen
 import com.wizytowki.ui.theme.WizytowkiAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -51,8 +51,6 @@ class MainActivity : ComponentActivity() {
 object Routes {
     const val HOME = "home"
     const val SCAN = "scan"
-    const val SCAN_FRONT = "scan_front"
-    const val SCAN_BACK = "scan_back"
     const val PREVIEW = "preview"
     const val DUPLICATE = "duplicate"
     const val CONTACT_DETAIL = "contact_detail/{id}"
@@ -85,19 +83,11 @@ fun WizytowkiNavigation() {
             )
         }
         composable(Routes.SCAN) {
-            // Etap 1 (#7): scanner prototype; SCAN_FRONT/SCAN_BACK get the chosen implementation in #8.
-            ScanPrototypeScreen(onBack = { navController.popBackStack() }, viewModel = hiltViewModel())
-        }
-        composable(Routes.SCAN_FRONT) {
-            PlaceholderScreen(navController, R.string.screen_scan_front, links = listOf(NavLink(R.string.screen_scan_back, Routes.SCAN_BACK)))
-        }
-        composable(Routes.SCAN_BACK) {
-            PlaceholderScreen(
-                navController, R.string.screen_scan_back,
-                links = listOf(
-                    NavLink(R.string.preview_title, Routes.PREVIEW),
-                    NavLink(R.string.scan_skip_back, Routes.PREVIEW),
-                )
+            // Screens "Aparat – przód" and "Aparat – tył" (REQUIREMENTS 8a) share one ViewModel.
+            ScanScreen(
+                viewModel = hiltViewModel(),
+                onCancel = { navController.popBackStack() },
+                onDone = { navController.navigate(Routes.PREVIEW) },
             )
         }
         composable(Routes.PREVIEW) {

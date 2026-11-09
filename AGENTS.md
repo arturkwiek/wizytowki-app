@@ -8,6 +8,7 @@ Pracujesz nad prywatną aplikacją Android do skanowania wizytówek. Jedynym źr
 - Przy niejasności zadaj pytanie w issue lub PR zamiast zgadywać.
 - Nie dodawaj zależności spoza stosu z sekcji 9 bez uzasadnienia w PR.
 - Żadnych danych wysyłanych do sieci. OCR i cała logika działają offline.
+  - Wyjątek zaakceptowany przez właściciela (2026-11-09, PR #82): Google ML Kit przez Google Play services – Play services może pobrać moduł przy pierwszym użyciu i wysyłać anonimowe metryki użycia ML Kit. Zdjęcia, tekst OCR i dane kontaktów nigdy nie opuszczają telefonu; aplikacja sama nie wykonuje żadnych połączeń sieciowych.
 - Nigdy nie commituj sekretów, kluczy ani prawdziwych danych osobowych.
 
 ## Przepływ pracy
@@ -20,7 +21,7 @@ Pracujesz nad prywatną aplikacją Android do skanowania wizytówek. Jedynym źr
 7. Jeden PR = jedno issue. PR do ok. 400 linii zmian; większe zadania dziel.
 
 ## Stos technologiczny
-Kotlin, Jetpack Compose, Material 3, MVVM, Hilt, Coroutines/Flow, Room + SQLCipher, CameraX / ML Kit Document Scanner, ML Kit Text Recognition v2, Language Identification, Entity Extraction, Android SpeechRecognizer. minSdk 26.
+Kotlin, Jetpack Compose, Material 3, MVVM, Hilt, Coroutines/Flow, Room + SQLCipher, ML Kit Document Scanner (decyzja w PR #82; bez CameraX), ML Kit Text Recognition v2, Language Identification, Entity Extraction, Android SpeechRecognizer. minSdk 26.
 
 ## Struktura kodu (docelowa)
 ```

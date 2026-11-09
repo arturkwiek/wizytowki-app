@@ -57,8 +57,6 @@
     <string name="permission_required">Required permission: %s</string>
 
     <!-- Placeholder screens (Etap 0) -->
-    <string name="screen_scan_front">Scan – front</string>
-    <string name="screen_scan_back">Scan – back</string>
     <string name="screen_contact_detail">Contact card</string>
     <string name="screen_company_detail">Company card</string>
     <string name="screen_duplicate">Duplicate</string>
@@ -66,24 +64,17 @@
     <string name="home_contacts_count">Contacts in database: %d</string>
     <string name="placeholder_note">Screen under construction</string>
 
-    <!-- Scanner prototype (Etap 1, #7) -->
-    <string name="proto_title">Scanner prototype</string>
-    <string name="proto_intro">Compare two scanning approaches and pick the better one.</string>
-    <string name="proto_mlkit">ML Kit Document Scanner</string>
-    <string name="proto_mlkit_desc">Ready-made Google screen: edge detection, cropping, deskewing, gallery import.</string>
-    <string name="proto_camerax">CameraX</string>
-    <string name="proto_camerax_desc">Own camera preview. No edge detection or deskewing – would need a custom implementation.</string>
-    <string name="proto_take_photo">Take photo</string>
-    <string name="proto_open_scanner">Open scanner</string>
-    <string name="proto_retake_front">Retake front</string>
-    <string name="proto_retake_back">Retake back</string>
-    <string name="proto_start_over">Change method</string>
-    <string name="proto_side_front">Front</string>
-    <string name="proto_side_back">Back</string>
-    <string name="proto_back_skipped">Back skipped</string>
-    <string name="proto_resolution">%1$d × %2$d px</string>
-    <string name="proto_camera_permission">The camera is needed to photograph the business card. Photos stay on the phone.</string>
-    <string name="proto_grant_permission">Allow camera</string>
-    <string name="proto_done">Done – both sides captured</string>
+    <!-- Scanning flow (Etap 1, #8) -->
+    <string name="scan_take_front">Scan the front</string>
+    <string name="scan_take_back">Scan the back</string>
+    <string name="scan_retake_front">Retake front</string>
+    <string name="scan_retake_back">Retake back</string>
+    <string name="scan_side_front">Front</string>
+    <string name="scan_side_back">Back</string>
+    <string name="scan_back_skipped">Back skipped</string>
+    <string name="scan_resolution">%1$d × %2$d px</string>
+    <string name="scan_both_ready">Both sides ready</string>
+    <string name="action_next">Next</string>
+    <string name="scan_unavailable">The scanner is unavailable. Check that Google Play services is installed and up to date.</string>
 
 </resources>
