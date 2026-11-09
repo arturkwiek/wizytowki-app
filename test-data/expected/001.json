@@ -1,0 +1,10 @@
+{
+  "firstName": "Jan",
+  "lastName": "Kowalski",
+  "phones": ["+48 600 123 456"],
+  "emails": ["jan.kowalski@przyklad.pl"],
+  "website": "www.przyklad.pl",
+  "company": { "name": "Przykład Sp. z o.o.", "nip": "1234563218" },
+  "position": { "pl": "Dyrektor sprzedaży", "en": "Sales Director" },
+  "address": { "pl": "ul. Długa 5, 00-001 Warszawa", "en": null }
+}

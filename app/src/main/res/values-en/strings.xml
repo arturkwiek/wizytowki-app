@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Business Cards</string>
+
+    <!-- Navigation and screens -->
+    <string name="nav_home">Home</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_contacts">Contacts</string>
+    <string name="nav_companies">Companies</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+
+    <!-- Scanning flow -->
+    <string name="scan_front">Take a photo of the front of the business card</string>
+    <string name="scan_back">Now take a photo of the back</string>
+    <string name="scan_skip_back">Skip – back is empty</string>
+    <string name="scan_retake">Retake photo</string>
+    <string name="scan_analyzing">Analyzing card...</string>
+    <string name="scan_error">Scanning error</string>
+
+    <!-- Preview screen -->
+    <string name="preview_title">Review data</string>
+    <string name="preview_edit_field">Edit field</string>
+    <string name="preview_low_confidence">Low confidence</string>
+    <string name="preview_add_comment">Add comment</string>
+    <string name="preview_language_pl">Polski</string>
+    <string name="preview_language_en">English</string>
+
+    <!-- Fields -->
+    <string name="field_first_name">First name</string>
+    <string name="field_last_name">Last name</string>
+    <string name="field_position">Position</string>
+    <string name="field_department">Department</string>
+    <string name="field_company">Company</string>
+    <string name="field_phone">Phone</string>
+    <string name="field_email">Email</string>
+    <string name="field_website">Website</string>
+    <string name="field_address">Address</string>
+    <string name="field_nip">NIP</string>
+    <string name="field_social">Social profiles</string>
+
+    <!-- Duplicate detection -->
+    <string name="duplicate_found">This person already exists in the database</string>
+    <string name="duplicate_update">Update existing record</string>
+    <string name="duplicate_create_new">Create new record</string>
+
+    <!-- Messages -->
+    <string name="saved_successfully">Saved successfully</string>
+    <string name="error_occurred">Error: %s</string>
+    <string name="permission_required">Required permission: %s</string>
+
+</resources>

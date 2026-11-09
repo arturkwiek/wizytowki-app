@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Wizytówki</string>
+
+    <!-- Navigation and screens -->
+    <string name="nav_home">Strona główna</string>
+    <string name="nav_scan">Skanuj</string>
+    <string name="nav_contacts">Kontakty</string>
+    <string name="nav_companies">Firmy</string>
+    <string name="nav_settings">Ustawienia</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Zapisz</string>
+    <string name="action_cancel">Anuluj</string>
+    <string name="action_undo">Cofnij</string>
+    <string name="action_retry">Ponów</string>
+    <string name="action_delete">Usuń</string>
+    <string name="action_edit">Edytuj</string>
+
+    <!-- Scanning flow -->
+    <string name="scan_front">Zrób zdjęcie przodu wizytówki</string>
+    <string name="scan_back">Teraz zrób zdjęcie tyłu</string>
+    <string name="scan_skip_back">Pomiń – tył pusty</string>
+    <string name="scan_retake">Ponów zdjęcie</string>
+    <string name="scan_analyzing">Analizowanie wizytówki...</string>
+    <string name="scan_error">Błąd podczas skanowania</string>
+
+    <!-- Preview screen -->
+    <string name="preview_title">Sprawdź dane</string>
+    <string name="preview_edit_field">Edytuj pole</string>
+    <string name="preview_low_confidence">Niska pewność</string>
+    <string name="preview_add_comment">Dodaj komentarz</string>
+    <string name="preview_language_pl">Polski</string>
+    <string name="preview_language_en">English</string>
+
+    <!-- Fields -->
+    <string name="field_first_name">Imię</string>
+    <string name="field_last_name">Nazwisko</string>
+    <string name="field_position">Stanowisko</string>
+    <string name="field_department">Dział</string>
+    <string name="field_company">Firma</string>
+    <string name="field_phone">Telefon</string>
+    <string name="field_email">E-mail</string>
+    <string name="field_website">Strona WWW</string>
+    <string name="field_address">Adres</string>
+    <string name="field_nip">NIP</string>
+    <string name="field_social">Profile społecznościowe</string>
+
+    <!-- Duplicate detection -->
+    <string name="duplicate_found">Ta osoba już istnieje w bazie</string>
+    <string name="duplicate_update">Zaktualizuj istniejący rekord</string>
+    <string name="duplicate_create_new">Utwórz nowy rekord</string>
+
+    <!-- Messages -->
+    <string name="saved_successfully">Zapisano pomyślnie</string>
+    <string name="error_occurred">Błąd: %s</string>
+    <string name="permission_required">Wymagane uprawnienie: %s</string>
+
+</resources>
