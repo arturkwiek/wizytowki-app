@@ -23,6 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wizytowki.R
+import com.wizytowki.extract.Entity
+import com.wizytowki.extract.EntityType
+import com.wizytowki.extract.Side
 import com.wizytowki.ocr.Language
 import com.wizytowki.ocr.OcrBlock
 import com.wizytowki.ocr.OcrPage
@@ -53,6 +56,7 @@ fun PreviewScreen(viewModel: PreviewViewModel) {
                     stringResource(R.string.preview_ocr_time, s.ocr.durationMs),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                if (s.entities.isNotEmpty()) EntityList(s.entities)
                 SideText(R.string.preview_side_front, s.ocr.front)
                 s.ocr.back?.let { SideText(R.string.preview_side_back, it) }
             }
@@ -90,4 +94,34 @@ private fun Fragment(block: OcrBlock) {
 @Composable
 private fun LanguageTag(code: String) {
     Text(code, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+}
+
+/** Contact data found in the text (WF-12); editing and field confidence arrive in Etap 3. */
+@Composable
+private fun EntityList(entities: List<Entity>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.preview_found_data), style = MaterialTheme.typography.titleMedium)
+            entities.forEach { entity ->
+                Column {
+                    val side = stringResource(if (entity.side == Side.FRONT) R.string.preview_side_front else R.string.preview_side_back)
+                    Text(
+                        "${stringResource(entity.type.label())} · $side",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SelectionContainer { Text(entity.value, style = MaterialTheme.typography.bodyLarge) }
+                }
+            }
+        }
+    }
+}
+
+@StringRes
+private fun EntityType.label() = when (this) {
+    EntityType.PHONE -> R.string.field_phone
+    EntityType.EMAIL -> R.string.field_email
+    EntityType.WEBSITE -> R.string.field_website
+    EntityType.SOCIAL -> R.string.field_social
+    EntityType.ADDRESS -> R.string.field_address
 }
