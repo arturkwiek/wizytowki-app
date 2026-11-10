@@ -1,6 +1,8 @@
 package com.wizytowki.ui.preview
 
 import com.wizytowki.ocr.CardRecognizer
+import com.wizytowki.ocr.FragmentLanguageDetector
+import com.wizytowki.ocr.LanguageIdentifier
 import com.wizytowki.ocr.OcrBlock
 import com.wizytowki.ocr.OcrLine
 import com.wizytowki.ocr.OcrPage
@@ -39,7 +41,7 @@ class PreviewViewModelTest {
             throw IllegalStateException("OCR failed")
         }
         OcrPage(listOf(OcrBlock(listOf(OcrLine("text of $uri")))))
-    })
+    }, FragmentLanguageDetector(LanguageIdentifier { emptyList() }))
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())

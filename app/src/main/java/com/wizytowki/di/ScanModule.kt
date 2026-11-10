@@ -1,5 +1,7 @@
 package com.wizytowki.di
 
+import com.wizytowki.ocr.LanguageIdentifier
+import com.wizytowki.ocr.MlKitLanguageIdentifier
 import com.wizytowki.ocr.MlKitTextRecognizer
 import com.wizytowki.ocr.TextRecognizer
 import com.wizytowki.scan.AndroidQualityChecker
@@ -22,4 +24,7 @@ abstract class ScanModule {
 
     @Binds
     abstract fun bindTextRecognizer(impl: MlKitTextRecognizer): TextRecognizer
+
+    @Binds
+    abstract fun bindLanguageIdentifier(impl: MlKitLanguageIdentifier): LanguageIdentifier
 }

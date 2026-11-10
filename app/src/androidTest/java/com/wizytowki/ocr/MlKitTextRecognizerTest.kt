@@ -47,3 +47,16 @@ class MlKitTextRecognizerTest {
         return Uri.fromFile(file)
     }
 }
+
+/** Real ML Kit Language Identification on the device, bundled model (WF-11). */
+@RunWith(AndroidJUnit4::class)
+class MlKitLanguageIdentifierTest {
+    private val detector = FragmentLanguageDetector(MlKitLanguageIdentifier())
+
+    @Test
+    fun tellsPolishFromEnglishOnCardLines() = runBlocking {
+        org.junit.Assert.assertEquals(Language.EN, detector.detect("Sales Department Manager").language)
+        org.junit.Assert.assertEquals(Language.PL, detector.detect("Dyrektor ds. sprzedazy i marketingu").language)
+        org.junit.Assert.assertEquals(Language.NEUTRAL, detector.detect("+48 600 123 456").language)
+    }
+}
