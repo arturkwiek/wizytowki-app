@@ -15,7 +15,10 @@ class CardRecognizerTest {
         "back" to page("Sales Department Manager"),
     )
     private val calls = mutableListOf<String>()
-    private val recognizer = CardRecognizer(TextRecognizer { uri -> calls += uri; pages.getValue(uri) })
+    private val recognizer = CardRecognizer(
+        TextRecognizer { uri -> calls += uri; pages.getValue(uri) },
+        FragmentLanguageDetector(LanguageIdentifier { text -> listOf(LanguageGuess(if ("Sales" in text) "en" else "pl", 0.9f)) }),
+    )
 
     @Test
     fun `WF-10 recognizes both sides and keeps Polish characters`() = runTest {
@@ -24,6 +27,14 @@ class CardRecognizerTest {
         assertEquals("Łukasz Żółć\nKierownik działu sprzedaży", ocr.front.text)
         assertEquals("Sales Department Manager", ocr.back?.text)
         assertEquals(setOf("front", "back"), calls.toSet())
+    }
+
+    @Test
+    fun `WF-11 each fragment gets its language`() = runTest {
+        val ocr = recognizer.recognize("front", "back")
+
+        assertEquals(Language.PL, ocr.front.blocks.single().language?.language)
+        assertEquals(Language.EN, ocr.back?.blocks?.single()?.language?.language)
     }
 
     @Test

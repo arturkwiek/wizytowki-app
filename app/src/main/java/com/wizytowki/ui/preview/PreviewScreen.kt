@@ -3,6 +3,7 @@ package com.wizytowki.ui.preview
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -22,9 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wizytowki.R
+import com.wizytowki.ocr.Language
+import com.wizytowki.ocr.OcrBlock
 import com.wizytowki.ocr.OcrPage
 
-/** Screen 4 "Podgląd" – Etap 2: recognized text of both sides and the analysis time. */
+/** Screen 4 "Podgląd" – Etap 2: recognized text of both sides with fragment languages and the analysis time. */
 @Composable
 fun PreviewScreen(viewModel: PreviewViewModel) {
     val state by viewModel.state.collectAsState()
@@ -65,8 +68,26 @@ private fun SideText(@StringRes label: Int, page: OcrPage) {
             if (page.isEmpty) {
                 Text(stringResource(R.string.preview_no_text), style = MaterialTheme.typography.bodyMedium)
             } else {
-                SelectionContainer { Text(page.text, style = MaterialTheme.typography.bodyMedium) }
+                page.blocks.filter { it.text.isNotBlank() }.forEach { block -> Fragment(block) }
             }
         }
     }
+}
+
+/** One OCR fragment with its detected language (WF-11); neutral or unknown fragments carry no tag. */
+@Composable
+private fun Fragment(block: OcrBlock) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        when (block.language?.language) {
+            Language.PL -> LanguageTag("PL")
+            Language.EN -> LanguageTag("EN")
+            else -> Unit
+        }
+        SelectionContainer { Text(block.text, style = MaterialTheme.typography.bodyMedium) }
+    }
+}
+
+@Composable
+private fun LanguageTag(code: String) {
+    Text(code, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
 }

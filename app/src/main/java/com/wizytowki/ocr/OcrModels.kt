@@ -11,8 +11,11 @@ data class OcrBox(val left: Int, val top: Int, val right: Int, val bottom: Int) 
  */
 data class OcrLine(val text: String, val confidence: Float? = null, val box: OcrBox? = null)
 
-/** A block of lines the recognizer grouped together (e.g. an address spanning two lines). */
-data class OcrBlock(val lines: List<OcrLine>) {
+/**
+ * A block of lines the recognizer grouped together (e.g. an address spanning two lines) –
+ * the "fragment" whose [language] is detected (WF-11); null before detection.
+ */
+data class OcrBlock(val lines: List<OcrLine>, val language: FragmentLanguage? = null) {
     val text: String get() = lines.joinToString("\n") { it.text }
 }
 

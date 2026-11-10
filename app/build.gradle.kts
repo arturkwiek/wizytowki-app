@@ -92,6 +92,8 @@ dependencies {
     // OCR: ML Kit Text Recognition v2 (alfabet łaciński) z modelem wbudowanym w APK – działa offline
     // od pierwszego uruchomienia, bez pobierania modułu (WF-10, WNF-01).
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    // Język fragmentów: ML Kit Language Identification, model wbudowany w APK (WF-11, offline).
+    implementation("com.google.mlkit:language-id:17.0.6")
     // SpeechRecognizer jest częścią frameworka Androida (android.speech) – nie wymaga zależności.
 
     // Testing

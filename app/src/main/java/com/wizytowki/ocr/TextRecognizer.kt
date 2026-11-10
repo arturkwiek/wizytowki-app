@@ -47,7 +47,7 @@ private fun Text.toPage() = OcrPage(
 
 private fun Rect.toBox() = OcrBox(left, top, right, bottom)
 
-private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
+internal suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
     addOnSuccessListener { cont.resume(it) }
     addOnFailureListener { cont.resumeWithException(it) }
     addOnCanceledListener { cont.cancel() }
