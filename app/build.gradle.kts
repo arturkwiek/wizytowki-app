@@ -89,7 +89,9 @@ dependencies {
     // Skaner: ML Kit Document Scanner przez Google Play services (decyzja w PR #82, wyjątek w AGENTS.md).
     implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0")
 
-    // ML Kit OCR itd. dochodzą w etapie 2 (AGENTS.md: tylko bieżący etap).
+    // OCR: ML Kit Text Recognition v2 (alfabet łaciński) z modelem wbudowanym w APK – działa offline
+    // od pierwszego uruchomienia, bez pobierania modułu (WF-10, WNF-01).
+    implementation("com.google.mlkit:text-recognition:16.0.1")
     // SpeechRecognizer jest częścią frameworka Androida (android.speech) – nie wymaga zależności.
 
     // Testing
