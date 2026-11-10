@@ -29,6 +29,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wizytowki.ui.home.DraftCard
 import com.wizytowki.ui.home.HomeViewModel
+import com.wizytowki.ui.preview.PreviewScreen
 import com.wizytowki.ui.scan.ScanScreen
 import com.wizytowki.ui.scan.ScanViewModel
 import com.wizytowki.ui.theme.WizytowkiAppTheme
@@ -108,9 +109,7 @@ fun WizytowkiNavigation() {
                 onDone = { navController.navigate(Routes.PREVIEW) },
             )
         }
-        composable(Routes.PREVIEW) {
-            PlaceholderScreen(navController, R.string.preview_title, links = listOf(NavLink(R.string.screen_duplicate, Routes.DUPLICATE)))
-        }
+        composable(Routes.PREVIEW) { PreviewScreen(viewModel = hiltViewModel()) }
         composable(Routes.DUPLICATE) {
             PlaceholderScreen(
                 navController, R.string.screen_duplicate,

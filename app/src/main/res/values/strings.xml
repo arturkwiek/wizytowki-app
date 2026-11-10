@@ -32,6 +32,13 @@
     <string name="preview_add_comment">Dodaj komentarz</string>
     <string name="preview_language_pl">Polski</string>
     <string name="preview_language_en">English</string>
+    <string name="preview_analyzing">Rozpoznaję tekst…</string>
+    <string name="preview_no_scan">Brak zeskanowanej wizytówki do analizy.</string>
+    <string name="preview_ocr_failed">Nie udało się rozpoznać tekstu.</string>
+    <string name="preview_ocr_time">Analiza: %1$d ms</string>
+    <string name="preview_side_front">Przód</string>
+    <string name="preview_side_back">Tył</string>
+    <string name="preview_no_text">Nie znaleziono tekstu.</string>
 
     <!-- Fields -->
     <string name="field_first_name">Imię</string>

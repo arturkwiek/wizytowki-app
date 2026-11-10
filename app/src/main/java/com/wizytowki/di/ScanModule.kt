@@ -1,5 +1,7 @@
 package com.wizytowki.di
 
+import com.wizytowki.ocr.MlKitTextRecognizer
+import com.wizytowki.ocr.TextRecognizer
 import com.wizytowki.scan.AndroidQualityChecker
 import com.wizytowki.scan.DraftStore
 import com.wizytowki.scan.FileDraftStore
@@ -17,4 +19,7 @@ abstract class ScanModule {
 
     @Binds
     abstract fun bindDraftStore(impl: FileDraftStore): DraftStore
+
+    @Binds
+    abstract fun bindTextRecognizer(impl: MlKitTextRecognizer): TextRecognizer
 }

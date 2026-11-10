@@ -32,6 +32,13 @@
     <string name="preview_add_comment">Add comment</string>
     <string name="preview_language_pl">Polski</string>
     <string name="preview_language_en">English</string>
+    <string name="preview_analyzing">Recognizing text…</string>
+    <string name="preview_no_scan">No scanned card to analyze.</string>
+    <string name="preview_ocr_failed">Text recognition failed.</string>
+    <string name="preview_ocr_time">Analysis: %1$d ms</string>
+    <string name="preview_side_front">Front</string>
+    <string name="preview_side_back">Back</string>
+    <string name="preview_no_text">No text found.</string>
 
     <!-- Fields -->
     <string name="field_first_name">First name</string>
