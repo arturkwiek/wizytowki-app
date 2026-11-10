@@ -1,5 +1,7 @@
 package com.wizytowki.ui.preview
 
+import com.wizytowki.extract.EntityExtractor
+import com.wizytowki.extract.EntityType
 import com.wizytowki.ocr.CardRecognizer
 import com.wizytowki.ocr.FragmentLanguageDetector
 import com.wizytowki.ocr.LanguageIdentifier
@@ -40,7 +42,7 @@ class PreviewViewModelTest {
             failures--
             throw IllegalStateException("OCR failed")
         }
-        OcrPage(listOf(OcrBlock(listOf(OcrLine("text of $uri")))))
+        OcrPage(listOf(OcrBlock(listOf(OcrLine("text of $uri"), OcrLine("tel. 600 100 200")))))
     }, FragmentLanguageDetector(LanguageIdentifier { emptyList() }))
 
     @Before
@@ -51,23 +53,24 @@ class PreviewViewModelTest {
 
     @Test
     fun `analyzes both sides of the finished scan`() {
-        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer)
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor())
 
         val ready = vm.state.value as PreviewUiState.Ready
-        assertEquals("text of f", ready.ocr.front.text)
-        assertEquals("text of b", ready.ocr.back?.text)
+        assertEquals("text of f\ntel. 600 100 200", ready.ocr.front.text)
+        assertEquals("text of b\ntel. 600 100 200", ready.ocr.back?.text)
+        assertEquals(listOf(EntityType.PHONE, EntityType.PHONE), ready.entities.map { it.type })
     }
 
     @Test
     fun `skipped back gives front only`() {
-        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer)
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor())
 
         assertNull((vm.state.value as PreviewUiState.Ready).ocr.back)
     }
 
     @Test
     fun `no draft means nothing to analyze`() {
-        val vm = PreviewViewModel(StubDraftStore(null), recognizer)
+        val vm = PreviewViewModel(StubDraftStore(null), recognizer, EntityExtractor())
 
         assertEquals(PreviewUiState.NoScan, vm.state.value)
     }
@@ -75,7 +78,7 @@ class PreviewViewModelTest {
     @Test
     fun `failure can be retried`() {
         failures = 1
-        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer)
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor())
         assertEquals(PreviewUiState.Failed, vm.state.value)
 
         vm.retry()

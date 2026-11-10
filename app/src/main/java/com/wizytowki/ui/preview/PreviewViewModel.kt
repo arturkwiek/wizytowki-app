@@ -2,6 +2,8 @@ package com.wizytowki.ui.preview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wizytowki.extract.Entity
+import com.wizytowki.extract.EntityExtractor
 import com.wizytowki.ocr.CardOcr
 import com.wizytowki.ocr.CardRecognizer
 import com.wizytowki.scan.DraftStore
@@ -21,7 +23,7 @@ sealed interface PreviewUiState {
 
     data object Failed : PreviewUiState
 
-    data class Ready(val ocr: CardOcr) : PreviewUiState
+    data class Ready(val ocr: CardOcr, val entities: List<Entity> = emptyList()) : PreviewUiState
 }
 
 /**
@@ -32,6 +34,7 @@ sealed interface PreviewUiState {
 class PreviewViewModel @Inject constructor(
     private val draftStore: DraftStore,
     private val cardRecognizer: CardRecognizer,
+    private val entityExtractor: EntityExtractor,
 ) : ViewModel() {
     private val _state = MutableStateFlow<PreviewUiState>(PreviewUiState.Analyzing)
     val state: StateFlow<PreviewUiState> = _state.asStateFlow()
@@ -52,7 +55,8 @@ class PreviewViewModel @Inject constructor(
                 return@launch
             }
             _state.value = try {
-                PreviewUiState.Ready(cardRecognizer.recognize(front, session.backUri))
+                val ocr = cardRecognizer.recognize(front, session.backUri)
+                PreviewUiState.Ready(ocr, entityExtractor.extract(ocr))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

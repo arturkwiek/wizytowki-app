@@ -38,6 +38,7 @@
     <string name="preview_ocr_time">Analiza: %1$d ms</string>
     <string name="preview_side_front">Przód</string>
     <string name="preview_side_back">Tył</string>
+    <string name="preview_found_data">Rozpoznane dane</string>
     <string name="preview_no_text">Nie znaleziono tekstu.</string>
 
     <!-- Fields -->
