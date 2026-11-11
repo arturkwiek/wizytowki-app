@@ -33,7 +33,7 @@ class CardMergerTest {
         )
         val phone = card.all(EntityType.PHONE).single()
         assertEquals(setOf(Side.FRONT, Side.BACK), phone.sides)
-        assertEquals(0.95f, phone.confidence)
+        assertEquals(0.99f, phone.confidence, 0.001f)
         assertEquals(1, card.all(EntityType.EMAIL).size)
         assertTrue(card.conflicts.isEmpty())
     }
@@ -66,6 +66,7 @@ class CardMergerTest {
         val nip = card.field(EntityType.NIP)!!
         assertEquals("5260250995", nip.value)
         assertTrue(nip.conflict)
+        assertTrue(nip.lowConfidence)
         assertEquals(listOf("5260250996"), nip.alternatives.map { it.value })
         assertFalse(card.field(EntityType.COMPANY)!!.conflict)
         assertEquals(listOf(nip), card.conflicts)
