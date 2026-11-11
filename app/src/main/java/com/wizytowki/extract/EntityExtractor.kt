@@ -6,7 +6,8 @@ import com.wizytowki.ocr.OcrPage
 import javax.inject.Inject
 
 /**
- * Extracts phones, e-mails, websites, social profiles and postal addresses from OCR text (WF-12, WF-13).
+ * Extracts contact data from OCR text (WF-12, WF-13): phones, e-mails, websites, social profiles and
+ * postal addresses here; NIP, name, position, department and company in [CardFieldRules].
  *
  * Own offline rules instead of ML Kit Entity Extraction: that library has no bundled model and
  * downloads it from the app process, which needs the INTERNET permission the app does not have
@@ -34,11 +35,12 @@ class EntityExtractor @Inject constructor() {
                     }
                 }
             }
-            found += addresses(block.lines, side)
+            found += addresses(block.lines, side).map { it.copy(language = block.language?.language) }
         }
-        return found
+        val contacts = found
             .groupBy { it.type to it.value }
             .map { (_, same) -> same.maxBy { it.confidence } }
+        return (CardFieldRules.extract(page, side, contacts) + contacts).sortedBy { it.type.ordinal }
     }
 
     // --- phones -----------------------------------------------------------------------------
