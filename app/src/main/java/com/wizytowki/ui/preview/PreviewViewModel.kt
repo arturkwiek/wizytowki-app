@@ -2,6 +2,8 @@ package com.wizytowki.ui.preview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wizytowki.domain.CardMerger
+import com.wizytowki.domain.MergedCard
 import com.wizytowki.extract.Entity
 import com.wizytowki.extract.EntityExtractor
 import com.wizytowki.ocr.CardOcr
@@ -23,7 +25,12 @@ sealed interface PreviewUiState {
 
     data object Failed : PreviewUiState
 
-    data class Ready(val ocr: CardOcr, val entities: List<Entity> = emptyList()) : PreviewUiState
+    /** [card] is [entities] of both sides merged into one record (WF-14, WF-15). */
+    data class Ready(
+        val ocr: CardOcr,
+        val entities: List<Entity> = emptyList(),
+        val card: MergedCard = CardMerger.merge(entities),
+    ) : PreviewUiState
 }
 
 /**
