@@ -23,7 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wizytowki.R
-import com.wizytowki.extract.Entity
+import com.wizytowki.domain.MergedCard
+import com.wizytowki.domain.MergedField
 import com.wizytowki.extract.EntityType
 import com.wizytowki.extract.Side
 import com.wizytowki.ocr.Language
@@ -56,7 +57,7 @@ fun PreviewScreen(viewModel: PreviewViewModel) {
                     stringResource(R.string.preview_ocr_time, s.ocr.durationMs),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                if (s.entities.isNotEmpty()) EntityList(s.entities)
+                if (s.card.fields.isNotEmpty()) FieldList(s.card)
                 SideText(R.string.preview_side_front, s.ocr.front)
                 s.ocr.back?.let { SideText(R.string.preview_side_back, it) }
             }
@@ -96,23 +97,43 @@ private fun LanguageTag(code: String) {
     Text(code, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
 }
 
-/** Contact data found in the text (WF-12); editing and field confidence arrive in Etap 3. */
+/**
+ * Fields of the merged record (WF-14): source side(s), PL/EN version and conflicting values
+ * from the other side (WF-15). Editing and choosing a conflict value arrive in Etap 3.
+ */
 @Composable
-private fun EntityList(entities: List<Entity>) {
+private fun FieldList(card: MergedCard) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.preview_found_data), style = MaterialTheme.typography.titleMedium)
-            entities.forEach { entity ->
-                Column {
-                    val side = stringResource(if (entity.side == Side.FRONT) R.string.preview_side_front else R.string.preview_side_back)
-                    Text(
-                        "${stringResource(entity.type.label())} · $side",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SelectionContainer { Text(entity.value, style = MaterialTheme.typography.bodyLarge) }
-                }
-            }
+            card.fields.forEach { field -> Field(field) }
+        }
+    }
+}
+
+@Composable
+private fun Field(field: MergedField) {
+    Column {
+        val sides = field.sides.sorted().map {
+            stringResource(if (it == Side.FRONT) R.string.preview_side_front else R.string.preview_side_back)
+        }
+        val language = when (field.language) {
+            Language.PL -> " · PL"
+            Language.EN -> " · EN"
+            else -> ""
+        }
+        Text(
+            "${stringResource(field.type.label())}$language · ${sides.joinToString(" + ")}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SelectionContainer { Text(field.value, style = MaterialTheme.typography.bodyLarge) }
+        if (field.conflict) {
+            Text(
+                stringResource(R.string.preview_conflict, field.alternatives.filter { it.side !in field.sides }.joinToString(" / ") { it.value }),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }
