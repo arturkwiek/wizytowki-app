@@ -119,6 +119,12 @@ private fun EntityList(entities: List<Entity>) {
 
 @StringRes
 private fun EntityType.label() = when (this) {
+    EntityType.FIRST_NAME -> R.string.field_first_name
+    EntityType.LAST_NAME -> R.string.field_last_name
+    EntityType.POSITION -> R.string.field_position
+    EntityType.DEPARTMENT -> R.string.field_department
+    EntityType.COMPANY -> R.string.field_company
+    EntityType.NIP -> R.string.field_nip
     EntityType.PHONE -> R.string.field_phone
     EntityType.EMAIL -> R.string.field_email
     EntityType.WEBSITE -> R.string.field_website
