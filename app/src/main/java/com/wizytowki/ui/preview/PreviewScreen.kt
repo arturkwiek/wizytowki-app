@@ -8,17 +8,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -128,6 +133,7 @@ private fun Field(field: MergedField) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         SelectionContainer { Text(field.value, style = MaterialTheme.typography.bodyLarge) }
+        if (field.lowConfidence) LowConfidenceNote()
         if (field.conflict) {
             Text(
                 stringResource(R.string.preview_conflict, field.alternatives.filter { it.side !in field.sides }.joinToString(" / ") { it.value }),
@@ -135,6 +141,24 @@ private fun Field(field: MergedField) {
                 color = MaterialTheme.colorScheme.error,
             )
         }
+    }
+}
+
+/** Low-confidence mark (WF-22): icon and text, not color alone (UI-06). */
+@Composable
+private fun LowConfidenceNote() {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Outlined.WarningAmber,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            stringResource(R.string.preview_low_confidence),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
     }
 }
 

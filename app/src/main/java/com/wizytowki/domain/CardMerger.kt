@@ -12,6 +12,7 @@ import java.text.Normalizer
  * - [sides]: card sides the value was read from; both when it was repeated (WF-15).
  * - [alternatives]: other values read for the same field. When they come from the other side,
  *   [conflict] is true and the user has to choose (WF-15, Etap 3 UI).
+ * - [confidence]: 0..1, see [FieldConfidence]; [lowConfidence] marks the field for checking (WF-22).
  */
 data class MergedField(
     val type: EntityType,
@@ -22,7 +23,9 @@ data class MergedField(
     val entity: Entity,
     val alternatives: List<Entity> = emptyList(),
     val conflict: Boolean = false,
-)
+) {
+    val lowConfidence: Boolean get() = confidence < FieldConfidence.LOW
+}
 
 /** The card as one record built from both sides (WF-14). */
 data class MergedCard(val fields: List<MergedField>) {
@@ -68,7 +71,8 @@ object CardMerger {
         if (others.isEmpty()) return listOf(best)
         // Two candidates read on the same side are an extraction ambiguity, not contradictory data.
         val conflict = others.any { other -> !best.sides.containsAll(other.sides) }
-        return listOf(best.copy(alternatives = others.map { it.entity }, conflict = conflict))
+        val confidence = if (conflict) FieldConfidence.conflicted(best.confidence) else best.confidence
+        return listOf(best.copy(alternatives = others.map { it.entity }, conflict = conflict, confidence = confidence))
     }
 
     /** One value read once or several times (e.g. on both sides). */
@@ -77,7 +81,7 @@ object CardMerger {
         return MergedField(
             type = type,
             value = chosen.value,
-            confidence = same.maxOf { it.confidence },
+            confidence = FieldConfidence.repeated(same.groupBy { it.side }.values.map { side -> side.maxOf { it.confidence } }),
             sides = same.map { it.side }.toSet(),
             language = language,
             entity = chosen,
