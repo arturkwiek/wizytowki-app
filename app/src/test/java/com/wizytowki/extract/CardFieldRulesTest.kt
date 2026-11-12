@@ -129,6 +129,14 @@ class CardFieldRulesTest {
     }
 
     @Test
+    fun `Polish words in capitals are recognized`() {
+        val found = extract("Jan Kowalski", "WŁAŚCICIEL", "DZIAŁ HANDLOWY", "INŻ. ANNA NOWAK")
+        assertEquals("WŁAŚCICIEL", found.value(EntityType.POSITION))
+        assertEquals("DZIAŁ HANDLOWY", found.value(EntityType.DEPARTMENT))
+        assertEquals("Jan", found.value(EntityType.FIRST_NAME))
+    }
+
+    @Test
     fun `company by legal form`() {
         assertEquals("ACME Polska Sp. z o.o.", extract("ACME Polska Sp. z o.o.").value(EntityType.COMPANY))
         assertEquals("Żabka Polska S.A.", extract("Żabka Polska S.A.").value(EntityType.COMPANY))

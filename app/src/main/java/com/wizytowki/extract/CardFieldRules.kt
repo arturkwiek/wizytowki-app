@@ -171,34 +171,46 @@ internal object CardFieldRules {
     private const val NAME_BASE = 0.45f
     private const val MAX_NAME_CERTAINTY = 0.95f
 
+    /*
+     * Word characters and word boundary spelled out with Unicode classes, so the rules behave the
+     * same in JVM unit tests and on the phone: Java's \b and \w are ASCII-only ("Dział" would not
+     * match), while Android's ICU engine rejects the (?U) flag that fixes this on the JVM.
+     * Case-insensitive rules use RegexOption.IGNORE_CASE, which Kotlin makes Unicode-aware;
+     * an embedded (?i) is ASCII-only on the JVM ("DZIAŁ" would not match "dział").
+     */
+    private const val W = "[\\p{L}\\p{N}_]"
+    private const val B = "(?:(?<=$W)(?!$W)|(?<!$W)(?=$W))"
+
+    private fun rule(pattern: String) = Regex(pattern, RegexOption.IGNORE_CASE)
+
     private val NIP_WEIGHTS = intArrayOf(6, 5, 7, 2, 3, 4, 5, 6, 7)
-    private val NIP_LABEL = Regex("(?iU)\\b(nip|vat|vat[- ]?id|vat no|tax id)\\b")
-    private val NIP_NUMBER = Regex("(?iU)(?<![\\d-])(?:PL\\s?)?\\d[\\d \\-]{8,13}\\d(?![\\d-])")
+    private val NIP_LABEL = rule("$B(nip|vat|vat[- ]?id|vat no|tax id)$B")
+    private val NIP_NUMBER = rule("(?<![\\d-])(?:PL\\s?)?\\d[\\d \\-]{8,13}\\d(?![\\d-])")
     private val NIP_GROUPED = Regex("\\d{3}-\\d{3}-\\d{2}-\\d{2}|\\d{3}-\\d{2}-\\d{2}-\\d{3}")
 
-    private val URL_LIKE = Regex("(?iU)www\\.|https?://|\\.(pl|com|eu|net|org)\\b")
-    private val COUNTRY = Regex("(?iU)polska|poland|germany|deutschland|niemcy|united kingdom|uk|usa|united states")
+    private val URL_LIKE = rule("www\\.|https?://|\\.(pl|com|eu|net|org)$B")
+    private val COUNTRY = rule("polska|poland|germany|deutschland|niemcy|united kingdom|uk|usa|united states")
 
-    private val LEGAL_FORM = Regex(
-        "(?iU)\\bsp\\.?\\s*z\\s*o\\.?\\s*o\\.?|\\bs\\.\\s?a\\.|\\bsp\\.\\s?[kjp]\\.|\\bs\\.c\\.|\\bspółka\\b|" +
-            "\\b(ltd|llc|inc|gmbh|ag|plc|corp|corporation|limited|s\\.r\\.o)\\b\\.?",
+    private val LEGAL_FORM = rule(
+        "${B}sp\\.?\\s*z\\s*o\\.?\\s*o\\.?|${B}s\\.\\s?a\\.|${B}sp\\.\\s?[kjp]\\.|${B}s\\.c\\.|${B}spółka$B|" +
+            "$B(ltd|llc|inc|gmbh|ag|plc|corp|corporation|limited|s\\.r\\.o)$B\\.?",
     )
-    private val COMPANY_WORD = Regex("(?iU)^(kancelaria|biuro rachunkowe|grupa|fundacja|stowarzyszenie|instytut|uniwersytet|politechnika)\\b")
+    private val COMPANY_WORD = rule("^(kancelaria|biuro rachunkowe|grupa|fundacja|stowarzyszenie|instytut|uniwersytet|politechnika)$B")
 
-    private val POSITION = Regex(
-        "(?iU)\\b(dyrektor\\w*|kierownik\\w*|prezes\\w*|wiceprezes\\w*|członek zarządu|czlonek zarzadu|prokurent\\w*|" +
-            "specjalist\\w*|menedżer\\w*|menadżer\\w*|manager|director|head of|chief|ceo|cto|cfo|coo|cmo|vp|" +
-            "vice president|president|owner|właściciel\\w*|wlasciciel\\w*|założyciel\\w*|founder|co-founder|" +
-            "konsultant\\w*|consultant|doradca|doradczyni|advisor|adviser|przedstawiciel\\w*|representative|" +
-            "inżynier\\w*|inzynier\\w*|engineer|developer|programist\\w*|architekt\\w*|architect|analityk\\w*|analyst|" +
-            "koordynator\\w*|coordinator|asystent\\w*|assistant|sekretar\\w*|secretary|księgow\\w*|accountant|" +
-            "radca prawny|adwokat|attorney|lawyer|partner|officer|executive|specialist|lead|leader|lider\\w*|" +
-            "handlowiec|opiekun\\w* klienta|account manager|sales|projektant\\w*|designer|technik|technician)\\b",
+    private val POSITION = rule(
+        "$B(dyrektor$W*|kierownik$W*|prezes$W*|wiceprezes$W*|członek zarządu|czlonek zarzadu|prokurent$W*|" +
+            "specjalist$W*|menedżer$W*|menadżer$W*|manager|director|head of|chief|ceo|cto|cfo|coo|cmo|vp|" +
+            "vice president|president|owner|właściciel$W*|wlasciciel$W*|założyciel$W*|founder|co-founder|" +
+            "konsultant$W*|consultant|doradca|doradczyni|advisor|adviser|przedstawiciel$W*|representative|" +
+            "inżynier$W*|inzynier$W*|engineer|developer|programist$W*|architekt$W*|architect|analityk$W*|analyst|" +
+            "koordynator$W*|coordinator|asystent$W*|assistant|sekretar$W*|secretary|księgow$W*|accountant|" +
+            "radca prawny|adwokat|attorney|lawyer|partner|officer|executive|specialist|lead|leader|lider$W*|" +
+            "handlowiec|opiekun$W* klienta|account manager|sales|projektant$W*|designer|technik|technician)$B",
     )
-    private val DEPARTMENT = Regex("(?iU)\\b(dział\\w*|dzial\\w*|departament\\w*|pion\\w*|zespół|zespol|wydział\\w*|department|division|team|unit)\\b")
+    private val DEPARTMENT = rule("$B(dział$W*|dzial$W*|departament$W*|pion$W*|zespół|zespol|wydział$W*|department|division|team|unit)$B")
 
-    private val TITLE_PREFIX = Regex("(?iU)^(dr|mgr|inż|inz|prof|hab|lek|med|mr|mrs|ms|miss|sir)\\.?\\s+")
-    private val NAME_SUFFIX = Regex("(?iU),?\\s+(phd|mba|msc|bsc|ma|ba|cpa|acca)\\.?$")
+    private val TITLE_PREFIX = rule("^(dr|mgr|inż|inz|prof|hab|lek|med|mr|mrs|ms|miss|sir)\\.?\\s+")
+    private val NAME_SUFFIX = rule(",?\\s+(phd|mba|msc|bsc|ma|ba|cpa|acca)\\.?$")
     private val NAME_WORD = Regex("\\p{Lu}\\p{Ll}+(-\\p{Lu}\\p{Ll}+)?|\\p{Lu}{2,}(-\\p{Lu}{2,})?")
 
     private val SECOND_LEVEL = setOf("com", "co", "net", "org", "gov", "edu", "waw", "krakow")
