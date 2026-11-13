@@ -1,6 +1,7 @@
 package com.wizytowki.extract
 
 import com.wizytowki.ocr.CardOcr
+import com.wizytowki.ocr.Language
 import com.wizytowki.ocr.OcrLine
 import com.wizytowki.ocr.OcrPage
 import javax.inject.Inject
@@ -35,8 +36,8 @@ class EntityExtractor @Inject constructor() {
                     }
                 }
             }
-            found += addresses(block.lines, side).map { it.copy(language = block.language?.language) }
         }
+        found += addresses(page, side)
         val contacts = found
             .groupBy { it.type to it.value }
             .map { (_, same) -> same.maxBy { it.confidence } }
@@ -138,46 +139,77 @@ class EntityExtractor @Inject constructor() {
 
     // --- addresses --------------------------------------------------------------------------
 
+    /** A line of the page with its OCR block, so an address can be joined across blocks. */
+    private class PageLine(val line: OcrLine, val block: Int, val language: Language?) {
+        val text: String get() = line.text
+    }
+
     /**
-     * Addresses within one OCR block: a line with a postal code (00-000, 5-digit, UK) together with
-     * the street line above it; a lone street line ("ul. Polna 5", "10 Baker Street") counts with
-     * lower certainty. A following country line (Polska, Poland, …) is appended.
+     * Addresses: a line with a postal code (00-000, 5-digit, UK) together with the street line
+     * above it; a lone street line ("ul. Polna 5", "10 Baker Street") counts with lower certainty.
+     * A following country line (Polska, Poland, …) is appended. Lines are joined within an OCR
+     * block, and across blocks only when one sits right under the other ([joinable]) – ML Kit
+     * often puts the street and the postal code into separate blocks. The address takes the
+     * language of its parts' blocks (WF-16), PL or EN when any part has one.
      */
-    private fun addresses(lines: List<OcrLine>, side: Side): List<Entity> {
+    private fun addresses(page: OcrPage, side: Side): List<Entity> {
+        val lines = page.blocks.flatMapIndexed { b, block -> block.lines.map { PageLine(it, b, block.language?.language) } }
         val result = mutableListOf<Entity>()
         val used = mutableSetOf<Int>()
         lines.forEachIndexed { i, line ->
             if (i in used) return@forEachIndexed
             val text = line.text.replace(ADDRESS_LABEL, "").trim()
-            val hasPostal = PL_POSTAL.containsMatchIn(text) || FOREIGN_POSTAL_CITY.containsMatchIn(text)
+            val hasPostal = hasPostalCode(text)
             val isStreet = looksLikeStreet(text)
             if (!hasPostal && !isStreet) return@forEachIndexed
             if (isContact(text)) return@forEachIndexed
 
             val parts = mutableListOf(i)
-            if (hasPostal && !isStreet && i > 0 && i - 1 !in used && looksLikeStreet(lines[i - 1].text)) {
+            if (hasPostal && !isStreet && i > 0 && i - 1 !in used && looksLikeStreet(lines[i - 1].text) &&
+                joinable(lines[i - 1], line)
+            ) {
                 parts.add(0, i - 1)
             }
-            if (!hasPostal && i + 1 < lines.size) {
+            if (!hasPostal && i + 1 < lines.size && joinable(line, lines[i + 1])) {
                 val next = lines[i + 1].text
-                if ((PL_POSTAL.containsMatchIn(next) || FOREIGN_POSTAL_CITY.containsMatchIn(next)) && !isContact(next)) {
-                    parts += i + 1
-                }
+                if (hasPostalCode(next) && !isContact(next)) parts += i + 1
             }
             val last = parts.last()
-            if (last + 1 < lines.size && COUNTRY.matches(lines[last + 1].text.trim())) parts += last + 1
+            if (last + 1 < lines.size && joinable(lines[last], lines[last + 1]) && COUNTRY.matches(lines[last + 1].text.trim())) {
+                parts += last + 1
+            }
 
             used += parts
             val partLines = parts.map { lines[it] }
             val value = partLines.joinToString(", ") { it.text.replace(ADDRESS_LABEL, "").trim().trimEnd(',') }
-            val complete = partLines.any { PL_POSTAL.containsMatchIn(it.text) || FOREIGN_POSTAL_CITY.containsMatchIn(it.text) }
-            val ocr = partLines.minOf { it.confidence ?: DEFAULT_OCR_CONFIDENCE }
+            val complete = partLines.any { hasPostalCode(it.text) }
+            val ocr = partLines.minOf { it.line.confidence ?: DEFAULT_OCR_CONFIDENCE }
+            val language = partLines.map { it.language }.firstOrNull { it == Language.PL || it == Language.EN }
+                ?: partLines.first().language
             result += Entity(
                 EntityType.ADDRESS, value, partLines.joinToString("\n") { it.text }, side,
                 ocr * if (complete) ADDRESS_CERTAINTY else STREET_ONLY_CERTAINTY,
+                language = language,
             )
         }
         return result
+    }
+
+    private fun hasPostalCode(text: String) = PL_POSTAL.containsMatchIn(text) || FOREIGN_POSTAL_CITY.containsMatchIn(text)
+
+    /**
+     * Two consecutive lines can belong to one address: they are in the same OCR block, or the
+     * lower one starts at most 1.5 line heights below the upper one and they overlap horizontally
+     * (not a neighbouring column). Without positions (tests) the reading order is trusted.
+     */
+    private fun joinable(upper: PageLine, lower: PageLine): Boolean {
+        if (upper.block == lower.block) return true
+        val a = upper.line.box ?: return true
+        val b = lower.line.box ?: return true
+        val height = maxOf(a.height, b.height)
+        val gap = b.top - a.bottom
+        val overlap = minOf(a.right, b.right) - maxOf(a.left, b.left)
+        return gap >= -height / 2 && gap <= height * 3 / 2 && overlap > 0
     }
 
     private fun looksLikeStreet(text: String): Boolean {
