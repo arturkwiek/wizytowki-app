@@ -1,7 +1,10 @@
 package com.wizytowki.extract
 
 import com.wizytowki.ocr.CardOcr
+import com.wizytowki.ocr.FragmentLanguage
+import com.wizytowki.ocr.Language
 import com.wizytowki.ocr.OcrBlock
+import com.wizytowki.ocr.OcrBox
 import com.wizytowki.ocr.OcrLine
 import com.wizytowki.ocr.OcrPage
 import org.junit.Assert.assertEquals
@@ -135,6 +138,46 @@ class EntityExtractorTest {
                 Side.BACK,
             ).filter { it.type == EntityType.ADDRESS }.map { it.value },
         )
+    }
+
+    @Test
+    fun `address split by OCR into two blocks is joined`() {
+        val page = page(listOf("Jan Kowalski", "ul. Długa 5"), listOf("00-001 Warszawa", "tel. 600 100 200"))
+        assertEquals(
+            listOf("ul. Długa 5, 00-001 Warszawa"),
+            extractor.extract(page, Side.FRONT).filter { it.type == EntityType.ADDRESS }.map { it.value },
+        )
+    }
+
+    private fun boxed(text: String, box: OcrBox, language: Language? = null) =
+        OcrBlock(listOf(OcrLine(text, 1f, box)), language?.let { FragmentLanguage(it, 0.9f) })
+
+    private fun addresses(vararg blocks: OcrBlock) =
+        extractor.extract(OcrPage(blocks.toList()), Side.FRONT).filter { it.type == EntityType.ADDRESS }
+
+    @Test
+    fun `blocks are joined when one line is right under the other, with the street block language`() {
+        val address = addresses(
+            boxed("ul. Długa 5", OcrBox(100, 400, 400, 450), Language.PL),
+            boxed("00-001 Warszawa", OcrBox(100, 470, 450, 520)),
+        ).single()
+        assertEquals("ul. Długa 5, 00-001 Warszawa", address.value)
+        assertEquals(Language.PL, address.language)
+    }
+
+    @Test
+    fun `blocks in another column or far below are not joined`() {
+        val otherColumn = addresses(
+            boxed("ul. Długa 5", OcrBox(100, 400, 400, 450)),
+            boxed("00-001 Warszawa", OcrBox(900, 470, 1250, 520)),
+        )
+        assertEquals(setOf("ul. Długa 5", "00-001 Warszawa"), otherColumn.map { it.value }.toSet())
+
+        val farBelow = addresses(
+            boxed("ul. Długa 5", OcrBox(100, 100, 400, 150)),
+            boxed("00-001 Warszawa", OcrBox(100, 600, 450, 650)),
+        )
+        assertEquals(2, farBelow.size)
     }
 
     @Test
