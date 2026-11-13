@@ -109,7 +109,15 @@ fun WizytowkiNavigation() {
                 onDone = { navController.navigate(Routes.PREVIEW) },
             )
         }
-        composable(Routes.PREVIEW) { PreviewScreen(viewModel = hiltViewModel()) }
+        composable(Routes.PREVIEW) {
+            PreviewScreen(
+                viewModel = hiltViewModel(),
+                // New scan from a clean stack: Back from it returns home, not to the previous card.
+                onScanNext = {
+                    navController.navigate(Routes.scan()) { popUpTo(Routes.HOME) }
+                },
+            )
+        }
         composable(Routes.DUPLICATE) {
             PlaceholderScreen(
                 navController, R.string.screen_duplicate,
