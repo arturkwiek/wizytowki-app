@@ -69,6 +69,15 @@ sealed interface SavedChange {
     ) : SavedChange
 }
 
+/** Editable fields of a company (#115); the e-mail domain follows from the people's addresses. */
+data class CompanyEdit(
+    val name: String = "",
+    val nip: String = "",
+    val website: String = "",
+    val addressPl: String = "",
+    val addressEn: String = "",
+)
+
 /** Saved contacts (#98). */
 interface ContactRepository {
     /** Saves a new person (with company, position and the scanned card). */
@@ -103,6 +112,9 @@ interface ContactRepository {
 
     /** A note added later, typed or dictated (WF-23, #115); kept below the earlier comments. */
     suspend fun addNote(personId: Long, note: String)
+
+    /** Correction of a company (#115); everyone linked to it sees the change (WF-31). */
+    suspend fun editCompany(companyId: Long, edit: CompanyEdit)
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -221,6 +233,22 @@ class RoomContactRepository @Inject constructor(
             }
             db.personDao().update(
                 contact.toPerson(companyId, now).copy(id = personId, comment = person.comment, createdAt = person.createdAt),
+            )
+        }
+    }
+
+    override suspend fun editCompany(companyId: Long, edit: CompanyEdit) {
+        db.withTransaction {
+            val company = db.companyDao().getCompanyById(companyId).first() ?: error("Company $companyId was deleted")
+            db.companyDao().update(
+                company.copy(
+                    name = edit.name.trim(),
+                    nip = edit.nip.filter { it.isDigit() },
+                    website = edit.website.trim(),
+                    addressPl = edit.addressPl.trim(),
+                    addressEn = edit.addressEn.trim(),
+                    updatedAt = LocalDateTime.now(),
+                ),
             )
         }
     }

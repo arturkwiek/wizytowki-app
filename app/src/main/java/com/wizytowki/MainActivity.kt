@@ -33,6 +33,8 @@ import com.wizytowki.ui.contact.CompanyDetailScreen
 import com.wizytowki.ui.contact.CompanyDetailViewModel
 import com.wizytowki.ui.contact.ContactDetailScreen
 import com.wizytowki.ui.contact.ContactDetailViewModel
+import com.wizytowki.ui.contact.EditCompanyScreen
+import com.wizytowki.ui.contact.EditCompanyViewModel
 import com.wizytowki.ui.contact.EditContactScreen
 import com.wizytowki.ui.contact.EditContactViewModel
 import com.wizytowki.ui.contact.MergeScreen
@@ -72,6 +74,7 @@ object Routes {
     const val MERGE = "merge/{id}"
     const val BROWSE = "browse"
     const val CONTACT_EDIT = "contact_edit/{id}"
+    const val COMPANY_EDIT = "company_edit/{id}"
     const val SETTINGS = "settings"
 
     fun scan(resume: Boolean = false) = if (resume) "scan?${ScanViewModel.ARG_RESUME}=true" else "scan"
@@ -79,6 +82,7 @@ object Routes {
     fun companyDetail(id: Long) = "company_detail/$id"
     fun merge(id: Long) = "merge/$id"
     fun contactEdit(id: Long) = "contact_edit/$id"
+    fun companyEdit(id: Long) = "company_edit/$id"
 }
 
 private data class NavLink(@StringRes val label: Int, val route: String)
@@ -143,6 +147,12 @@ fun WizytowkiNavigation() {
             )
         }
         composable(
+            Routes.COMPANY_EDIT,
+            arguments = listOf(navArgument(EditCompanyViewModel.ARG_ID) { type = NavType.LongType }),
+        ) {
+            EditCompanyScreen(viewModel = hiltViewModel(), onDone = { navController.popBackStack() })
+        }
+        composable(
             Routes.CONTACT_EDIT,
             arguments = listOf(navArgument(EditContactViewModel.ARG_ID) { type = NavType.LongType }),
         ) {
@@ -165,6 +175,7 @@ fun WizytowkiNavigation() {
             CompanyDetailScreen(
                 viewModel = hiltViewModel(),
                 onOpenContact = { navController.navigate(Routes.contactDetail(it)) },
+                onEdit = { navController.navigate(Routes.companyEdit(it)) },
                 onBack = { navController.popBackStack() },
             )
         }

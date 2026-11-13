@@ -112,4 +112,17 @@ class ContactQueriesTest {
         // The nameless company created only for Ola's position is not listed.
         assertEquals(listOf("ACME S.A." to 2), queries.companies().first().map { it.name to it.people })
     }
+
+    @Test
+    fun companyEditIsSeenByEveryoneThere() = runBlocking {
+        val jan = repository.saveNew(ContactDraft(firstName = "Jan", company = "Akme"), scan("ce1.jpg"))
+        val anna = repository.saveNew(ContactDraft(firstName = "Anna", company = "AKME"), scan("ce2.jpg"))
+        val companyId = queries.contact(jan.personId).first()!!.companyId!!
+
+        repository.editCompany(companyId, CompanyEdit(name = "ACME Polska Sp. z o.o.", nip = "526-025-09-95", addressPl = "ul. Długa 5"))
+
+        assertEquals("ACME Polska Sp. z o.o.", queries.contact(anna.personId).first()!!.contact.company)
+        assertEquals("5260250995", queries.company(companyId).first()!!.company.nip)
+        assertEquals("ul. Długa 5", queries.contact(jan.personId).first()!!.contact.addressPl)
+    }
 }
