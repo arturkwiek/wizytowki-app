@@ -46,6 +46,10 @@ sealed interface PreviewUiState {
         val draft: ContactDraft = ContactDraft.from(card),
         /** Photo URIs of the scanned sides, for the thumbnails (WF-20). */
         val photos: List<String> = emptyList(),
+        /** Where the contact was met (WF-24), optional. */
+        val event: String = "",
+        /** Approximate place of the scan, "lat, lon" (WF-24), optional. */
+        val location: String = "",
     ) : PreviewUiState {
         /** Fields whose recognized value is uncertain (WF-22); an edited value is no longer marked. */
         val lowConfidence: Set<ContactField>
@@ -123,6 +127,18 @@ class PreviewViewModel @Inject constructor(
         _state.value = ready.copy(draft = with(ContactComparison) { ready.draft.with(field, values) })
     }
 
+    /** Event where the contact was met (WF-24). */
+    fun editEvent(text: String) = editReady { it.copy(event = text) }
+
+    /** Approximate place of the scan, or "" to remove it (WF-24). */
+    fun setLocation(location: String) = editReady { it.copy(location = location) }
+
+    private fun editReady(change: (PreviewUiState.Ready) -> PreviewUiState.Ready) {
+        val ready = _state.value as? PreviewUiState.Ready ?: return
+        if (!ready.editable || ready.review != null) return
+        _state.value = change(ready)
+    }
+
     /** Typed comment (WF-23, UI-08). */
     fun editComment(text: String) = editDraft { it.copy(comment = text) }
 
@@ -177,7 +193,7 @@ class PreviewViewModel @Inject constructor(
         _state.value = ready.copy(save = SaveState.SAVING)
         viewModelScope.launch {
             _state.value = try {
-                action(ready, ScanRecord(front, session?.backUri, ready.ocr.rawText))
+                action(ready, ScanRecord(front, session?.backUri, ready.ocr.rawText, ready.event, ready.location))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

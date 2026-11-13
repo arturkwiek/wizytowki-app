@@ -69,6 +69,7 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
                 } else {
                     ContactForm(s.draft, s.card, s.lowConfidence, s.editable, viewModel::edit)
                     CommentSection(s.draft.comment, s.editable, viewModel::editComment, viewModel::addDictation)
+                    MeetingSection(s.event, s.location, s.editable, viewModel::editEvent, viewModel::setLocation)
                     SaveSection(s.save, viewModel::save)
                     // Next card only once this one is stored (owner's request, #98).
                     if (s.save == SaveState.SAVED || s.save == SaveState.UPDATED) ScanNextButton(onScanNext)

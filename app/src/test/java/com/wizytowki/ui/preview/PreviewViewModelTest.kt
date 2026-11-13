@@ -209,4 +209,27 @@ class PreviewViewModelTest {
         dup.confirmUpdate()
         assertEquals("druga rozmowa", contacts.updated.single().second.comment)
     }
+
+    @Test
+    fun `WF-24 event and place are saved with the card`() {
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor(), contacts)
+        vm.editEvent("Targi Infosystem")
+        vm.setLocation("52.40640, 16.92520")
+        vm.save()
+
+        val scan = contacts.saved.single().second
+        assertEquals("Targi Infosystem", scan.event)
+        assertEquals("52.40640, 16.92520", scan.location)
+    }
+
+    @Test
+    fun `coordinates use a dot in every language`() {
+        val previous = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale("pl", "PL"))
+            assertEquals("52.40640, -16.92520", formatCoordinates(52.4064, -16.9252))
+        } finally {
+            java.util.Locale.setDefault(previous)
+        }
+    }
 }

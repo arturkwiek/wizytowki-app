@@ -20,8 +20,17 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** One scan to keep with the contact (WF-25, WF-34): photo URIs from the draft and the raw OCR text. */
-data class ScanRecord(val frontUri: String, val backUri: String?, val rawText: String)
+/**
+ * One scan to keep with the contact (WF-24, WF-25, WF-34): photo URIs from the draft, the raw OCR
+ * text and, optionally, where ([location], "lat, lon") and at which [event] the contact was met.
+ */
+data class ScanRecord(
+    val frontUri: String,
+    val backUri: String?,
+    val rawText: String,
+    val event: String = "",
+    val location: String = "",
+)
 
 /** Saved contacts (#98). */
 interface ContactRepository {
@@ -117,7 +126,10 @@ class RoomContactRepository @Inject constructor(
         val stamp = System.currentTimeMillis()
         val front = photos.keep(scan.frontUri, "card_${stamp}_front")
         val back = scan.backUri?.let { photos.keep(it, "card_${stamp}_back") }.orEmpty()
-        return BusinessCardEntity(personId = 0, frontPhotoPath = front, backPhotoPath = back, rawOcrText = scan.rawText)
+        return BusinessCardEntity(
+            personId = 0, frontPhotoPath = front, backPhotoPath = back, rawOcrText = scan.rawText,
+            event = scan.event.trim(), location = scan.location,
+        )
     }
 
     override suspend fun savedContacts(): List<SavedContact> = db.withTransaction {

@@ -46,6 +46,13 @@
     <string name="preview_dictate">Dyktuj komentarz</string>
     <string name="preview_dictation_language">Język dyktowania:</string>
     <string name="preview_dictation_unavailable">Dyktowanie nie jest dostępne na tym telefonie. Wpisz komentarz z klawiatury.</string>
+    <string name="meeting_scanned_at">Zeskanowano: %1$s</string>
+    <string name="meeting_event">Wydarzenie (opcjonalnie)</string>
+    <string name="meeting_location">Miejsce</string>
+    <string name="meeting_add_location">Dodaj miejsce</string>
+    <string name="meeting_remove_location">Usuń</string>
+    <string name="meeting_location_purpose">Miejsce poznania kontaktu (przybliżone) zapisuje się tylko w telefonie. Przy pierwszym użyciu aplikacja poprosi o dostęp do lokalizacji.</string>
+    <string name="meeting_location_unavailable">Nie udało się ustalić miejsca. Sprawdź, czy lokalizacja jest włączona i czy aplikacja ma do niej dostęp.</string>
     <string name="preview_conflict">Inna wartość na drugiej stronie: %1$s</string>
 
     <!-- Fields -->
