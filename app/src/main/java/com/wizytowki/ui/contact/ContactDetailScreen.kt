@@ -21,6 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,9 +53,18 @@ fun ContactDetailScreen(
     viewModel: ContactDetailViewModel,
     onOpenCompany: (Long) -> Unit,
     onMerge: (Long) -> Unit,
+    onOpenContact: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val movedTo by viewModel.movedTo.collectAsState()
+    val splitFailed by viewModel.splitFailed.collectAsState()
+    LaunchedEffect(movedTo) {
+        movedTo?.let {
+            viewModel.movedShown()
+            onOpenContact(it)
+        }
+    }
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -62,7 +73,8 @@ fun ContactDetailScreen(
             ContactDetailState.Loading -> Unit
             ContactDetailState.Missing -> Text(stringResource(R.string.contact_missing), style = MaterialTheme.typography.bodyLarge)
             is ContactDetailState.Ready -> {
-                ContactCard(s.details, onOpenCompany)
+                ContactCard(s.details, onOpenCompany, onSplitCard = viewModel::splitCard)
+                if (splitFailed) Text(stringResource(R.string.split_failed), color = MaterialTheme.colorScheme.error)
                 // Manual merge of two records of the same person (WF-35).
                 OutlinedButton(onClick = { onMerge(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.merge_action))
@@ -76,7 +88,11 @@ fun ContactDetailScreen(
 }
 
 @Composable
-fun ContactCard(details: ContactDetails, onOpenCompany: (Long) -> Unit) {
+fun ContactCard(
+    details: ContactDetails,
+    onOpenCompany: (Long) -> Unit,
+    onSplitCard: ((BusinessCardEntity) -> Unit)? = null,
+) {
     val context = LocalContext.current
     val contact = details.contact
     val open: (Intent) -> Unit = { QuickActions.open(context, it) }
@@ -137,7 +153,9 @@ fun ContactCard(details: ContactDetails, onOpenCompany: (Long) -> Unit) {
 
     if (details.cards.isNotEmpty()) {
         Text(stringResource(R.string.contact_cards, details.cards.size), style = MaterialTheme.typography.titleMedium)
-        details.cards.forEach { card -> ScannedCard(card) }
+        // A card can move to a new contact only if this person keeps at least one (WF-35).
+        val split = onSplitCard.takeIf { details.cards.size > 1 }
+        details.cards.forEach { card -> ScannedCard(card, split?.let { { it(card) } }) }
     }
 }
 
@@ -161,13 +179,16 @@ private fun JobRow(job: JobHistoryItem, onOpenCompany: () -> Unit) {
 
 /** One scanned card of the person (WF-34): photos, date, event and place. */
 @Composable
-private fun ScannedCard(card: BusinessCardEntity) {
+private fun ScannedCard(card: BusinessCardEntity, onSplit: (() -> Unit)?) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CardThumbnails(listOf(card.frontPhotoPath, card.backPhotoPath).filter { it.isNotBlank() }.map { "file://$it" })
             Text(card.scannedAt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)), style = MaterialTheme.typography.bodyMedium)
             val where = listOf(card.event, card.location).filter { it.isNotBlank() }.joinToString(" · ")
             if (where.isNotEmpty()) Text(where, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (onSplit != null) {
+                TextButton(onClick = onSplit, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.split_action)) }
+            }
         }
     }
 }

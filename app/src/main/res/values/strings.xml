@@ -117,6 +117,8 @@
     <string name="merge_confirm">Scal</string>
     <string name="merge_other_person">Wybierz innego</string>
     <string name="merge_failed">Nie udało się scalić kontaktów.</string>
+    <string name="split_action">Przenieś do nowego kontaktu</string>
+    <string name="split_failed">Nie udało się przenieść wizytówki.</string>
     <string name="company_missing">Ta firma nie istnieje (mogła zostać usunięta).</string>
     <string name="company_no_name">Firma bez nazwy</string>
     <string name="company_address_pl">Adres (PL)</string>
