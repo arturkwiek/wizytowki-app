@@ -13,3 +13,5 @@
 
 # Zdjęcia prawdziwych wizytówek właściciela – tylko lokalnie (dane osobowe, AGENTS.md)
 /test-data/samples/
+# Prawdziwe wizytówki do testu dokładności OCR (#19): zdjęcia i oczekiwane wyniki, tylko lokalnie
+/test-data/private/

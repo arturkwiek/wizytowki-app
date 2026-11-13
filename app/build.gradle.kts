@@ -50,6 +50,53 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    sourceSets {
+        // Accuracy scoring (#19) is shared by JVM tests and the on-device OCR accuracy test.
+        getByName("test").java.srcDir("src/sharedTest/java")
+        getByName("androidTest").java.srcDir("src/sharedTest/java")
+    }
+}
+
+/**
+ * Copies the OCR accuracy sets (#19) into the test APK assets: test-data/{cards,expected} and the
+ * git-ignored test-data/private/{cards,expected} with real cards. test-data/samples/ is left out.
+ */
+abstract class CopyTestDataAssets : DefaultTask() {
+    @get:Internal
+    abstract val root: DirectoryProperty
+
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    val sources: FileTree
+        get() = root.asFileTree.matching { include(SETS.map { "$it/**" }) }
+
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val out = output.get().asFile
+        out.deleteRecursively()
+        val base = root.get().asFile
+        SETS.map { File(base, it) }.filter { it.isDirectory }
+            .forEach { it.copyRecursively(File(out, "test-data/" + it.relativeTo(base).invariantSeparatorsPath), overwrite = true) }
+    }
+
+    private companion object {
+        val SETS = listOf("cards", "expected", "private/cards", "private/expected")
+    }
+}
+
+val copyTestDataAssets = tasks.register<CopyTestDataAssets>("copyTestDataAssets") {
+    root.set(rootProject.layout.projectDirectory.dir("test-data"))
+}
+
+// Test APK only – the app itself never contains test cards.
+androidComponents {
+    onVariants { variant ->
+        variant.androidTest?.sources?.assets?.addGeneratedSourceDirectory(copyTestDataAssets, CopyTestDataAssets::output)
+    }
 }
 
 dependencies {
