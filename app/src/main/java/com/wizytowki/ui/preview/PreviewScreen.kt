@@ -19,6 +19,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,9 +37,12 @@ import com.wizytowki.ocr.Language
 import com.wizytowki.ocr.OcrBlock
 import com.wizytowki.ocr.OcrPage
 
-/** Screen 4 "Podgląd" – Etap 2: recognized text of both sides with fragment languages and the analysis time. */
+/**
+ * Screen 4 "Podgląd" – Etap 2: recognized text of both sides with fragment languages and the analysis time.
+ * [onScanNext] starts the next card; saving the contact before it arrives in Etap 3.
+ */
 @Composable
-fun PreviewScreen(viewModel: PreviewViewModel) {
+fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
     val state by viewModel.state.collectAsState()
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -50,12 +54,16 @@ fun PreviewScreen(viewModel: PreviewViewModel) {
                 Text(stringResource(R.string.preview_analyzing))
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
-            PreviewUiState.NoScan -> Text(stringResource(R.string.preview_no_scan))
+            PreviewUiState.NoScan -> {
+                Text(stringResource(R.string.preview_no_scan))
+                ScanNextButton(onScanNext)
+            }
             PreviewUiState.Failed -> {
                 Text(stringResource(R.string.preview_ocr_failed))
                 Button(onClick = viewModel::retry, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                     Text(stringResource(R.string.action_retry))
                 }
+                ScanNextButton(onScanNext)
             }
             is PreviewUiState.Ready -> {
                 Text(
@@ -63,10 +71,18 @@ fun PreviewScreen(viewModel: PreviewViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                 )
                 if (s.card.fields.isNotEmpty()) FieldList(s.card)
+                ScanNextButton(onScanNext)
                 SideText(R.string.preview_side_front, s.ocr.front)
                 s.ocr.back?.let { SideText(R.string.preview_side_back, it) }
             }
         }
+    }
+}
+
+@Composable
+private fun ScanNextButton(onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+        Text(stringResource(R.string.preview_scan_next))
     }
 }
 
