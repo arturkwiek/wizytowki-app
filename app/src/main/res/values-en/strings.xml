@@ -142,6 +142,8 @@
     <string name="delete_card_confirm">Delete this card and its photos? The contact data stays. This cannot be undone.</string>
     <string name="delete_confirm">Delete</string>
     <string name="delete_failed">Could not delete.</string>
+    <string name="photo_full_screen">Card photo on the full screen</string>
+    <string name="photo_close">Close photo</string>
     <string name="company_missing">This company does not exist (it may have been deleted).</string>
     <string name="company_no_name">Company without a name</string>
     <string name="company_address_pl">Address (PL)</string>

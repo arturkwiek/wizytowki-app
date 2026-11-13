@@ -142,6 +142,8 @@
     <string name="delete_card_confirm">Usunąć tę wizytówkę i jej zdjęcia? Dane kontaktu zostaną. Tego nie da się cofnąć.</string>
     <string name="delete_confirm">Usuń</string>
     <string name="delete_failed">Nie udało się usunąć.</string>
+    <string name="photo_full_screen">Zdjęcie wizytówki na pełnym ekranie</string>
+    <string name="photo_close">Zamknij zdjęcie</string>
     <string name="company_missing">Ta firma nie istnieje (mogła zostać usunięta).</string>
     <string name="company_no_name">Firma bez nazwy</string>
     <string name="company_address_pl">Adres (PL)</string>
