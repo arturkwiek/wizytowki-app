@@ -1,5 +1,8 @@
 package com.wizytowki.ui.preview
 
+import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.ScanRecord
+import com.wizytowki.domain.ContactDraft
 import com.wizytowki.extract.EntityExtractor
 import com.wizytowki.extract.EntityType
 import com.wizytowki.ocr.CardRecognizer
@@ -33,9 +36,19 @@ private class StubDraftStore(private val session: ScanSession?) : DraftStore {
     override suspend fun clear() = Unit
 }
 
+private class FakeContacts(var fail: Boolean = false) : ContactRepository {
+    val saved = mutableListOf<Pair<ContactDraft, ScanRecord>>()
+    override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): Long {
+        if (fail) throw IllegalStateException("disk full")
+        saved += contact to scan
+        return saved.size.toLong()
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class PreviewViewModelTest {
     private var failures = 0
+    private val contacts = FakeContacts()
 
     private val recognizer = CardRecognizer(TextRecognizer { uri ->
         if (failures > 0) {
@@ -53,7 +66,7 @@ class PreviewViewModelTest {
 
     @Test
     fun `analyzes both sides of the finished scan`() {
-        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor())
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor(), contacts)
 
         val ready = vm.state.value as PreviewUiState.Ready
         assertEquals("text of f\ntel. 600 100 200", ready.ocr.front.text)
@@ -63,14 +76,14 @@ class PreviewViewModelTest {
 
     @Test
     fun `skipped back gives front only`() {
-        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor())
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor(), contacts)
 
         assertNull((vm.state.value as PreviewUiState.Ready).ocr.back)
     }
 
     @Test
     fun `no draft means nothing to analyze`() {
-        val vm = PreviewViewModel(StubDraftStore(null), recognizer, EntityExtractor())
+        val vm = PreviewViewModel(StubDraftStore(null), recognizer, EntityExtractor(), contacts)
 
         assertEquals(PreviewUiState.NoScan, vm.state.value)
     }
@@ -78,11 +91,29 @@ class PreviewViewModelTest {
     @Test
     fun `failure can be retried`() {
         failures = 1
-        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor())
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor(), contacts)
         assertEquals(PreviewUiState.Failed, vm.state.value)
 
         vm.retry()
 
         assertTrue(vm.state.value is PreviewUiState.Ready)
+    }
+
+    @Test
+    fun `save stores the contact with the scan and can be retried after a failure`() {
+        contacts.fail = true
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor(), contacts)
+
+        vm.save()
+        assertEquals(SaveState.FAILED, (vm.state.value as PreviewUiState.Ready).save)
+
+        contacts.fail = false
+        vm.save()
+        vm.save()
+
+        assertEquals(SaveState.SAVED, (vm.state.value as PreviewUiState.Ready).save)
+        val (contact, scan) = contacts.saved.single()
+        assertEquals(listOf("+48600100200"), contact.phones)
+        assertEquals(ScanRecord("f", "b", (vm.state.value as PreviewUiState.Ready).ocr.rawText), scan)
     }
 }

@@ -71,9 +71,31 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                 )
                 if (s.card.fields.isNotEmpty()) FieldList(s.card)
+                SaveSection(s.save, viewModel::save)
                 ScanNextButton(onScanNext)
                 SideText(R.string.preview_side_front, s.ocr.front)
                 s.ocr.back?.let { SideText(R.string.preview_side_back, it) }
+            }
+        }
+    }
+}
+
+/** Saving the card as a contact (#98); editing fields before saving arrives in Etap 3. */
+@Composable
+private fun SaveSection(save: SaveState, onSave: () -> Unit) {
+    when (save) {
+        SaveState.SAVED -> Text(
+            stringResource(R.string.saved_successfully),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        SaveState.SAVING -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        SaveState.IDLE, SaveState.FAILED -> {
+            if (save == SaveState.FAILED) {
+                Text(stringResource(R.string.preview_save_failed), color = MaterialTheme.colorScheme.error)
+            }
+            Button(onClick = onSave, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                Text(stringResource(R.string.action_save))
             }
         }
     }

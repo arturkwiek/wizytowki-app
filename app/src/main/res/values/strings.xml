@@ -41,6 +41,7 @@
     <string name="preview_found_data">Rozpoznane dane</string>
     <string name="preview_no_text">Nie znaleziono tekstu.</string>
     <string name="preview_scan_next">Skanuj kolejną</string>
+    <string name="preview_save_failed">Nie udało się zapisać kontaktu. Spróbuj ponownie.</string>
     <string name="preview_conflict">Inna wartość na drugiej stronie: %1$s</string>
 
     <!-- Fields -->

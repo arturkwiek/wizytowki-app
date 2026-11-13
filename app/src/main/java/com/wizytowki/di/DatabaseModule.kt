@@ -1,6 +1,8 @@
 package com.wizytowki.di
 
 import android.content.Context
+import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.RoomContactRepository
 import com.wizytowki.data.db.DatabaseKeyProvider
 import com.wizytowki.data.db.WizytowkiDatabase
 import com.wizytowki.data.db.dao.BusinessCardDao
@@ -36,4 +38,7 @@ object DatabaseModule {
 
     @Provides
     fun provideBusinessCardDao(db: WizytowkiDatabase): BusinessCardDao = db.businessCardDao()
+
+    @Provides
+    fun provideContactRepository(repository: RoomContactRepository): ContactRepository = repository
 }

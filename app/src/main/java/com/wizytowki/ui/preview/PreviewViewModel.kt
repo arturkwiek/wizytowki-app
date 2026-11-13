@@ -2,7 +2,11 @@ package com.wizytowki.ui.preview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.ScanRecord
 import com.wizytowki.domain.CardMerger
+import com.wizytowki.domain.ContactDraft
+import com.wizytowki.scan.ScanSession
 import com.wizytowki.domain.MergedCard
 import com.wizytowki.extract.Entity
 import com.wizytowki.extract.EntityExtractor
@@ -30,8 +34,11 @@ sealed interface PreviewUiState {
         val ocr: CardOcr,
         val entities: List<Entity> = emptyList(),
         val card: MergedCard = CardMerger.merge(entities),
+        val save: SaveState = SaveState.IDLE,
     ) : PreviewUiState
 }
+
+enum class SaveState { IDLE, SAVING, SAVED, FAILED }
 
 /**
  * Preview screen (REQUIREMENTS 8a, screen 4): analyzes the finished scan from the draft.
@@ -42,9 +49,11 @@ class PreviewViewModel @Inject constructor(
     private val draftStore: DraftStore,
     private val cardRecognizer: CardRecognizer,
     private val entityExtractor: EntityExtractor,
+    private val contacts: ContactRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow<PreviewUiState>(PreviewUiState.Analyzing)
     val state: StateFlow<PreviewUiState> = _state.asStateFlow()
+    private var session: ScanSession? = null
 
     init {
         analyze()
@@ -52,10 +61,31 @@ class PreviewViewModel @Inject constructor(
 
     fun retry() = analyze()
 
+    /** Saves the recognized card as a new contact and ends the scan (#98). */
+    fun save() {
+        val ready = _state.value as? PreviewUiState.Ready ?: return
+        val front = session?.frontUri ?: return
+        if (ready.save == SaveState.SAVING || ready.save == SaveState.SAVED) return
+        _state.value = ready.copy(save = SaveState.SAVING)
+        viewModelScope.launch {
+            val result = try {
+                contacts.saveNew(ContactDraft.from(ready.card), ScanRecord(front, session?.backUri, ready.ocr.rawText))
+                draftStore.clear()
+                SaveState.SAVED
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                SaveState.FAILED
+            }
+            (_state.value as? PreviewUiState.Ready)?.let { _state.value = it.copy(save = result) }
+        }
+    }
+
     private fun analyze() {
         _state.value = PreviewUiState.Analyzing
         viewModelScope.launch {
             val session = draftStore.draft.value ?: draftStore.load()
+            this@PreviewViewModel.session = session
             val front = session?.frontUri
             if (front == null) {
                 _state.value = PreviewUiState.NoScan
