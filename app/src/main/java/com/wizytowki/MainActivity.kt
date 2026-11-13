@@ -28,7 +28,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wizytowki.ui.home.DraftCard
-import com.wizytowki.ui.home.HomeViewModel
+import com.wizytowki.ui.contact.ContactDetailScreen
+import com.wizytowki.ui.contact.ContactDetailViewModel
+import com.wizytowki.ui.home.HomeScreen
 import com.wizytowki.ui.preview.PreviewScreen
 import com.wizytowki.ui.scan.ScanScreen
 import com.wizytowki.ui.scan.ScanViewModel
@@ -75,27 +77,12 @@ fun WizytowkiNavigation() {
 
     NavHost(navController = navController, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
-            val viewModel: HomeViewModel = hiltViewModel()
-            val contactCount by viewModel.contactCount.collectAsState()
-            val draft by viewModel.draft.collectAsState()
-            PlaceholderScreen(
-                navController, R.string.nav_home, showBack = false,
-                subtitle = stringResource(R.string.home_contacts_count, contactCount),
-                header = {
-                    draft?.let {
-                        DraftCard(
-                            draft = it,
-                            onResume = { navController.navigate(Routes.scan(resume = true)) },
-                            onDiscard = viewModel::discardDraft,
-                        )
-                    }
-                },
-                links = listOf(
-                    NavLink(R.string.nav_scan, Routes.scan()),
-                    NavLink(R.string.screen_contact_detail, Routes.contactDetail(1)),
-                    NavLink(R.string.screen_company_detail, Routes.companyDetail(1)),
-                    NavLink(R.string.nav_settings, Routes.SETTINGS),
-                )
+            HomeScreen(
+                viewModel = hiltViewModel(),
+                onScan = { navController.navigate(Routes.scan()) },
+                onResume = { navController.navigate(Routes.scan(resume = true)) },
+                onOpenContact = { navController.navigate(Routes.contactDetail(it)) },
+                onSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
         composable(
@@ -118,16 +105,16 @@ fun WizytowkiNavigation() {
                 },
             )
         }
-        composable(Routes.DUPLICATE) {
-            PlaceholderScreen(
-                navController, R.string.screen_duplicate,
-                links = listOf(NavLink(R.string.screen_contact_detail, Routes.contactDetail(1)))
-            )
-        }
-        composable(Routes.CONTACT_DETAIL) {
-            PlaceholderScreen(
-                navController, R.string.screen_contact_detail,
-                links = listOf(NavLink(R.string.screen_company_detail, Routes.companyDetail(1)))
+        // Duplicates are compared on the preview screen (#98); manual merging of saved records is #32.
+        composable(Routes.DUPLICATE) { PlaceholderScreen(navController, R.string.screen_duplicate) }
+        composable(
+            Routes.CONTACT_DETAIL,
+            arguments = listOf(navArgument(ContactDetailViewModel.ARG_ID) { type = NavType.LongType }),
+        ) {
+            ContactDetailScreen(
+                viewModel = hiltViewModel(),
+                onOpenCompany = { navController.navigate(Routes.companyDetail(it)) },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.COMPANY_DETAIL) { PlaceholderScreen(navController, R.string.screen_company_detail) }

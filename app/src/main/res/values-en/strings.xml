@@ -3,7 +3,6 @@
     <string name="app_name">Business Cards</string>
 
     <!-- Navigation and screens -->
-    <string name="nav_home">Home</string>
     <string name="nav_scan">Scan</string>
     <string name="nav_contacts">Contacts</string>
     <string name="nav_companies">Companies</string>
@@ -80,7 +79,6 @@
     <string name="permission_required">Required permission: %s</string>
 
     <!-- Placeholder screens (Etap 0) -->
-    <string name="screen_contact_detail">Contact card</string>
     <string name="screen_company_detail">Company card</string>
     <string name="screen_duplicate">Duplicate</string>
     <string name="duplicate_title">This person is already saved</string>
@@ -98,6 +96,14 @@
     <string name="duplicate_updated">Contact updated</string>
     <string name="action_back">Back</string>
     <string name="home_contacts_count">Contacts in database: %d</string>
+    <string name="home_recent">Recently added</string>
+    <string name="contact_missing">This contact does not exist (it may have been deleted).</string>
+    <string name="contact_no_name">No name</string>
+    <string name="contact_call">Call</string>
+    <string name="contact_email">Email</string>
+    <string name="contact_map">Map</string>
+    <string name="contact_comment">Comments</string>
+    <string name="contact_cards_summary">Cards: %1$d, last: %2$s</string>
     <string name="placeholder_note">Screen under construction</string>
 
     <!-- Scanning flow (Etap 1, #8) -->

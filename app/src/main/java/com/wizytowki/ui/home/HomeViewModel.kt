@@ -2,6 +2,8 @@ package com.wizytowki.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.wizytowki.data.ContactQueries
+import com.wizytowki.data.ContactSummary
 import com.wizytowki.data.db.dao.PersonDao
 import com.wizytowki.scan.DraftStore
 import com.wizytowki.scan.ScanSession
@@ -15,8 +17,13 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     personDao: PersonDao,
+    queries: ContactQueries,
     private val draftStore: DraftStore,
 ) : ViewModel() {
+    /** Recently added or updated contacts (REQUIREMENTS 8a, screen 1). */
+    val recent: StateFlow<List<ContactSummary>> = queries.recentContacts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /** Number of saved contacts; collecting it opens (and on first run creates) the encrypted database. */
     val contactCount: StateFlow<Int> = personDao.countPersons()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)

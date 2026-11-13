@@ -1,0 +1,68 @@
+package com.wizytowki.data
+
+import com.wizytowki.data.db.WizytowkiDatabase
+import com.wizytowki.data.db.entities.BusinessCardEntity
+import com.wizytowki.domain.ContactDraft
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import javax.inject.Inject
+
+/** One row of a contact list: who, where and as what. */
+data class ContactSummary(
+    val personId: Long,
+    val firstName: String,
+    val lastName: String,
+    val company: String,
+    val position: String,
+) {
+    val name: String get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
+}
+
+/** Everything the person card shows (REQUIREMENTS 8a, screen 7). Cards newest first. */
+data class ContactDetails(
+    val personId: Long,
+    val companyId: Long?,
+    val contact: ContactDraft,
+    val cards: List<BusinessCardEntity>,
+)
+
+/** Reading saved contacts for the screens; saving goes through [ContactRepository]. */
+interface ContactQueries {
+    fun recentContacts(limit: Int = 20): Flow<List<ContactSummary>>
+
+    fun contact(personId: Long): Flow<ContactDetails?>
+}
+
+class RoomContactQueries @Inject constructor(private val db: WizytowkiDatabase) : ContactQueries {
+
+    override fun recentContacts(limit: Int): Flow<List<ContactSummary>> = combine(
+        db.personDao().recentPersons(limit),
+        db.companyDao().getAllCompanies(),
+        db.employmentHistoryDao().currentJobs(),
+    ) { persons, companies, jobs ->
+        val companyNames = companies.associate { it.id to it.name }
+        val jobByPerson = jobs.associateBy { it.personId }
+        persons.map { person ->
+            val job = jobByPerson[person.id]
+            ContactSummary(
+                personId = person.id,
+                firstName = person.firstName,
+                lastName = person.lastName,
+                company = person.currentCompanyId?.let { companyNames[it] }.orEmpty(),
+                position = job?.positionPl?.ifBlank { job.positionEn }.orEmpty(),
+            )
+        }
+    }
+
+    override fun contact(personId: Long): Flow<ContactDetails?> = combine(
+        db.personDao().getPersonById(personId),
+        db.companyDao().getAllCompanies(),
+        db.employmentHistoryDao().getHistoryByPerson(personId),
+        db.businessCardDao().getCardsByPerson(personId),
+    ) { person, companies, jobs, cards ->
+        person ?: return@combine null
+        val company = person.currentCompanyId?.let { id -> companies.firstOrNull { it.id == id } }
+        val job = jobs.firstOrNull { it.isCurrent }
+        ContactDetails(person.id, company?.id, contactOf(person, company, job).copy(comment = person.comment), cards)
+    }
+}
