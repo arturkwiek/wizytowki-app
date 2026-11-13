@@ -43,6 +43,7 @@
     <string name="preview_scan_next">Scan next card</string>
     <string name="preview_save_failed">Could not save the contact. Try again.</string>
     <string name="preview_add_value">Add: %1$s</string>
+    <string name="preview_undo_failed">Could not undo the save</string>
     <string name="preview_dictate">Dictate comment</string>
     <string name="preview_dictation_language">Dictation language:</string>
     <string name="preview_dictation_unavailable">Dictation is not available on this phone. Type the comment instead.</string>

@@ -1,6 +1,7 @@
 package com.wizytowki.ui.preview
 
 import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.SavedChange
 import com.wizytowki.data.ScanRecord
 import com.wizytowki.domain.ContactDraft
 import com.wizytowki.domain.Choice
@@ -43,10 +44,16 @@ private class StubDraftStore(private val session: ScanSession?) : DraftStore {
 
 private class FakeContacts(var fail: Boolean = false) : ContactRepository {
     val saved = mutableListOf<Pair<ContactDraft, ScanRecord>>()
-    override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): Long {
+    val undone = mutableListOf<SavedChange>()
+
+    override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): SavedChange {
         if (fail) throw IllegalStateException("disk full")
         saved += contact to scan
-        return saved.size.toLong()
+        return SavedChange.Created(saved.size.toLong(), 1, listOf("/cards/front.jpg", "/cards/back.jpg"), null)
+    }
+
+    override suspend fun undo(change: SavedChange) {
+        undone += change
     }
 
     var existing: List<SavedContact> = emptyList()
@@ -54,8 +61,9 @@ private class FakeContacts(var fail: Boolean = false) : ContactRepository {
 
     override suspend fun savedContacts(): List<SavedContact> = existing
 
-    override suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord) {
+    override suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord): SavedChange {
         updated += saved to contact
+        return SavedChange.Created(saved.personId, 2, listOf("/cards/front2.jpg"), null)
     }
 }
 
@@ -231,5 +239,35 @@ class PreviewViewModelTest {
         } finally {
             java.util.Locale.setDefault(previous)
         }
+    }
+
+    @Test
+    fun `undo reverts the save and brings the scan back for editing`() {
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor(), contacts)
+        vm.editComment("pierwsza wersja")
+        vm.save()
+        assertEquals(SaveState.SAVED, vm.ready.save)
+
+        vm.undo()
+
+        assertEquals(contacts.saved.size, contacts.undone.size)
+        assertEquals(SaveState.IDLE, vm.ready.save)
+        assertTrue(vm.ready.editable)
+        assertEquals(listOf("file:///cards/front.jpg", "file:///cards/back.jpg"), vm.ready.photos)
+        assertEquals("pierwsza wersja", vm.ready.draft.comment)
+
+        vm.save()
+        assertEquals(2, contacts.saved.size)
+        assertEquals("file:///cards/front.jpg", contacts.saved.last().second.frontUri)
+    }
+
+    @Test
+    fun `undo after updating a duplicate`() {
+        val vm = duplicateVm()
+        vm.confirmUpdate()
+        vm.undo()
+        assertEquals(2L, contacts.undone.single().cardId)
+        assertEquals(SaveState.IDLE, vm.ready.save)
+        assertEquals(listOf("file:///cards/front2.jpg"), vm.ready.photos)
     }
 }

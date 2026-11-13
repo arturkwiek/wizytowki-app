@@ -43,6 +43,7 @@
     <string name="preview_scan_next">Skanuj kolejną</string>
     <string name="preview_save_failed">Nie udało się zapisać kontaktu. Spróbuj ponownie.</string>
     <string name="preview_add_value">Dodaj: %1$s</string>
+    <string name="preview_undo_failed">Nie udało się cofnąć zapisu</string>
     <string name="preview_dictate">Dyktuj komentarz</string>
     <string name="preview_dictation_language">Język dyktowania:</string>
     <string name="preview_dictation_unavailable">Dyktowanie nie jest dostępne na tym telefonie. Wpisz komentarz z klawiatury.</string>

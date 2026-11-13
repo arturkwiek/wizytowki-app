@@ -45,7 +45,7 @@ class ContactRepositoryTest {
             addressPl = "ul. Długa 5, 00-001 Warszawa",
         )
 
-        val id = repository.saveNew(contact, ScanRecord(photo("front.jpg"), photo("back.jpg"), "OCR text"))
+        val id = repository.saveNew(contact, ScanRecord(photo("front.jpg"), photo("back.jpg"), "OCR text")).personId
 
         val person = db.personDao().getPersonById(id).first()!!
         assertEquals("Łukasz", person.firstName)
@@ -73,7 +73,7 @@ class ContactRepositoryTest {
             departmentEn = "Finance",
             addressEn = "5 Polna Street, 00-625 Warsaw",
         )
-        val id = repository.saveNew(contact, ScanRecord(photo("f3.jpg"), null, ""))
+        val id = repository.saveNew(contact, ScanRecord(photo("f3.jpg"), null, "")).personId
 
         val saved = repository.savedContacts().single()
         assertEquals(id, saved.personId)
@@ -83,7 +83,7 @@ class ContactRepositoryTest {
     @Test
     fun updateKeepsPersonAndAddsTheCard() = runBlocking {
         val first = ContactDraft(firstName = "Jan", lastName = "Kowalski", phones = listOf("+48600100200"), company = "ACME S.A.", positionPl = "Kierownik")
-        val id = repository.saveNew(first, ScanRecord(photo("u1.jpg"), null, "1"))
+        val id = repository.saveNew(first, ScanRecord(photo("u1.jpg"), null, "1")).personId
         val saved = repository.savedContacts().single()
 
         val merged = first.copy(phones = listOf("+48600100200", "+48221234567"), company = "ACME s.a.", positionPl = "Dyrektor")
@@ -100,7 +100,7 @@ class ContactRepositoryTest {
     @Test
     fun newCompanyEndsThePreviousJob() = runBlocking {
         val first = ContactDraft(firstName = "Anna", lastName = "Nowak", company = "Stara Firma Sp. z o.o.", positionPl = "Analityk")
-        val id = repository.saveNew(first, ScanRecord(photo("j1.jpg"), null, ""))
+        val id = repository.saveNew(first, ScanRecord(photo("j1.jpg"), null, "")).personId
         val saved = repository.savedContacts().single()
 
         repository.update(saved, first.copy(company = "Nowa Firma S.A.", positionPl = "Kierownik"), ScanRecord(photo("j2.jpg"), null, ""))
@@ -114,7 +114,7 @@ class ContactRepositoryTest {
 
     @Test
     fun personWithoutCompanyAndBack() = runBlocking {
-        val id = repository.saveNew(ContactDraft(firstName = "Anna", phones = listOf("+48600100200")), ScanRecord(photo("f2.jpg"), null, ""))
+        val id = repository.saveNew(ContactDraft(firstName = "Anna", phones = listOf("+48600100200")), ScanRecord(photo("f2.jpg"), null, "")).personId
 
         val person = db.personDao().getPersonById(id).first()!!
         assertNull(person.currentCompanyId)
@@ -124,7 +124,7 @@ class ContactRepositoryTest {
     @Test
     fun commentIsSavedAndLaterNotesAreAdded() = runBlocking {
         val first = ContactDraft(firstName = "Ewa", lastName = "Lis", comment = "Targi Poznań")
-        val id = repository.saveNew(first, ScanRecord(photo("c1.jpg"), null, ""))
+        val id = repository.saveNew(first, ScanRecord(photo("c1.jpg"), null, "")).personId
         repository.update(repository.savedContacts().single(), first.copy(comment = "Oferta wysłana"), ScanRecord(photo("c2.jpg"), null, ""))
 
         assertEquals("Targi Poznań\n\nOferta wysłana", db.personDao().getPersonById(id).first()!!.comment)
@@ -132,9 +132,40 @@ class ContactRepositoryTest {
 
     @Test
     fun eventAndPlaceAreStoredWithTheCard() = runBlocking {
-        val id = repository.saveNew(ContactDraft(firstName = "Ola"), ScanRecord(photo("e1.jpg"), null, "", "Targi Infosystem", "52.40640, 16.92520"))
+        val id = repository.saveNew(ContactDraft(firstName = "Ola"), ScanRecord(photo("e1.jpg"), null, "", "Targi Infosystem", "52.40640, 16.92520")).personId
         val card = db.businessCardDao().getCardsByPerson(id).first().single()
         assertEquals("Targi Infosystem", card.event)
         assertEquals("52.40640, 16.92520", card.location)
+    }
+
+    @Test
+    fun undoOfNewContactRemovesEverything() = runBlocking {
+        val change = repository.saveNew(ContactDraft(firstName = "Ewa", company = "ACME S.A.", positionPl = "Prezes"), ScanRecord(photo("x1.jpg"), photo("x2.jpg"), ""))
+        val photos = change.cardPhotos
+        assertEquals(2, photos.size)
+
+        repository.undo(change)
+
+        assertTrue(repository.savedContacts().isEmpty())
+        assertTrue(db.companyDao().getAllCompanies().first().isEmpty())
+        assertTrue(db.businessCardDao().getAllCards().first().isEmpty())
+        assertTrue(photos.none { File(it).exists() })
+    }
+
+    @Test
+    fun undoOfUpdateRestoresThePreviousContact() = runBlocking {
+        val first = ContactDraft(firstName = "Anna", lastName = "Nowak", company = "Stara Firma Sp. z o.o.", positionPl = "Analityk", comment = "notatka")
+        val id = repository.saveNew(first, ScanRecord(photo("y1.jpg"), null, "")).personId
+        val before = repository.savedContacts().single()
+
+        val change = repository.update(before, first.copy(company = "Nowa Firma S.A.", positionPl = "Kierownik", comment = "druga"), ScanRecord(photo("y2.jpg"), null, ""))
+        repository.undo(change)
+
+        val after = repository.savedContacts().single()
+        assertEquals(before, after)
+        assertEquals("notatka", db.personDao().getPersonById(id).first()!!.comment)
+        assertEquals(1, db.businessCardDao().getCardsByPerson(id).first().size)
+        assertEquals(listOf("Analityk"), db.employmentHistoryDao().getHistoryByPerson(id).first().map { it.positionPl })
+        assertEquals(1, db.companyDao().getAllCompanies().first().size)
     }
 }

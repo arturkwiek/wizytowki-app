@@ -17,9 +17,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -70,9 +72,9 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
                     ContactForm(s.draft, s.card, s.lowConfidence, s.editable, viewModel::edit)
                     CommentSection(s.draft.comment, s.editable, viewModel::editComment, viewModel::addDictation)
                     MeetingSection(s.event, s.location, s.editable, viewModel::editEvent, viewModel::setLocation)
-                    SaveSection(s.save, viewModel::save)
+                    SaveSection(s.save, viewModel::save, viewModel::undo)
                     // Next card only once this one is stored (owner's request, #98).
-                    if (s.save == SaveState.SAVED || s.save == SaveState.UPDATED) ScanNextButton(onScanNext)
+                    if (s.save in setOf(SaveState.SAVED, SaveState.UPDATED, SaveState.UNDO_FAILED)) ScanNextButton(onScanNext)
                 }
                 SideText(R.string.preview_side_front, s.ocr.front)
                 s.ocr.back?.let { SideText(R.string.preview_side_back, it) }
@@ -82,13 +84,28 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
 }
 
 @Composable
-private fun SaveSection(save: SaveState, onSave: () -> Unit) {
+private fun SaveSection(save: SaveState, onSave: () -> Unit, onUndo: () -> Unit) {
     when (save) {
-        SaveState.SAVED, SaveState.UPDATED -> Text(
-            stringResource(if (save == SaveState.SAVED) R.string.saved_successfully else R.string.duplicate_updated),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        // Saved at once, with "Undo" instead of a confirmation dialog (UI-02, #25).
+        SaveState.SAVED, SaveState.UPDATED, SaveState.UNDO_FAILED -> Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                stringResource(
+                    when (save) {
+                        SaveState.SAVED -> R.string.saved_successfully
+                        SaveState.UPDATED -> R.string.duplicate_updated
+                        else -> R.string.preview_undo_failed
+                    },
+                ),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (save == SaveState.UNDO_FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onUndo, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_undo)) }
+        }
         SaveState.SAVING -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         SaveState.IDLE, SaveState.FAILED -> {
             if (save == SaveState.FAILED) {
