@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.wizytowki.BuildConfig
 import com.wizytowki.R
 import com.wizytowki.data.ContactSummary
 
@@ -65,6 +66,12 @@ fun HomeScreen(
         OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(R.string.nav_settings))
         }
+        // Which build is installed (owner's request): version, commit and build time.
+        Text(
+            stringResource(R.string.home_build_info, BuildConfig.VERSION_NAME, BuildConfig.GIT_COMMIT, BuildConfig.BUILD_TIME),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
