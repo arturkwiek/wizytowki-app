@@ -124,6 +124,9 @@ interface ContactRepository {
 
     /** Deletes one scanned card and its photos (#118). */
     suspend fun deleteCard(cardId: Long)
+
+    /** A contact typed in by hand, without a card (#118); returns the new person's id. */
+    suspend fun addContact(contact: ContactDraft): Long
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -259,6 +262,16 @@ class RoomContactRepository @Inject constructor(
                     updatedAt = LocalDateTime.now(),
                 ),
             )
+        }
+    }
+
+    override suspend fun addContact(contact: ContactDraft): Long {
+        val now = LocalDateTime.now()
+        return db.withTransaction {
+            val company = if (contact.hasCompanyData) linkCompany(contact, now) else null
+            val personId = db.personDao().insert(contact.toPerson(company?.id, now))
+            if (company != null) db.employmentHistoryDao().insert(contact.toEmployment(personId, company.id, now))
+            personId
         }
     }
 

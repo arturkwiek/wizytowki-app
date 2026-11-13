@@ -97,6 +97,11 @@
     <string name="home_contacts_count">Contacts in database: %d</string>
     <string name="home_recent">Recently added</string>
     <string name="home_browse">Contacts and companies</string>
+    <string name="home_add_manually">Add contact manually</string>
+    <string name="add_contact_title">New contact</string>
+    <string name="add_contact_duplicate">This person seems to be saved already: %1$s</string>
+    <string name="add_contact_open_existing">Open the saved contact</string>
+    <string name="add_contact_save_anyway">Save as new anyway</string>
     <string name="home_build_info">Version %1$s · %2$s · built %3$s</string>
     <string name="browse_title">Contacts and companies</string>
     <string name="browse_search">Search: name, company, phone, email</string>

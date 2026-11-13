@@ -97,6 +97,11 @@
     <string name="home_contacts_count">Kontakty w bazie: %d</string>
     <string name="home_recent">Ostatnio dodane</string>
     <string name="home_browse">Kontakty i firmy</string>
+    <string name="home_add_manually">Dodaj kontakt ręcznie</string>
+    <string name="add_contact_title">Nowy kontakt</string>
+    <string name="add_contact_duplicate">Ta osoba jest już chyba zapisana: %1$s</string>
+    <string name="add_contact_open_existing">Otwórz zapisany kontakt</string>
+    <string name="add_contact_save_anyway">Zapisz jako nowy mimo to</string>
     <string name="home_build_info">Wersja %1$s · %2$s · zbudowano %3$s</string>
     <string name="browse_title">Kontakty i firmy</string>
     <string name="browse_search">Szukaj: imię, nazwisko, firma, telefon, e-mail</string>

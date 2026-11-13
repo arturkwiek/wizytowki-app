@@ -301,4 +301,17 @@ class ContactRepositoryTest {
         assertTrue(second.cardPhotos.none { File(it).exists() })
         assertEquals("Ola", repository.savedContacts().single().contact.firstName)
     }
+
+    @Test
+    fun manualContactWithoutCard() = runBlocking {
+        repository.saveNew(ContactDraft(firstName = "Jan", company = "ACME S.A."), ScanRecord(photo("m0.jpg"), null, ""))
+
+        val id = repository.addContact(ContactDraft(firstName = "Łucja", lastName = "Wiśniewska", company = "Acme SA", positionPl = "Prezes", comment = "z rozmowy"))
+
+        val saved = repository.savedContacts().single { it.personId == id }
+        assertEquals("Prezes", saved.contact.positionPl)
+        assertEquals(1, db.companyDao().getAllCompanies().first().size)
+        assertTrue(db.businessCardDao().getCardsByPerson(id).first().isEmpty())
+        assertEquals("z rozmowy", db.personDao().getPersonById(id).first()!!.comment)
+    }
 }

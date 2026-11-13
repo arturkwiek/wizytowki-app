@@ -63,6 +63,7 @@ class ContactDetailViewModelTest {
         override suspend fun editCompany(companyId: Long, edit: com.wizytowki.data.CompanyEdit) = Unit
         override suspend fun deletePerson(personId: Long) { deletedPeople += personId }
         override suspend fun deleteCard(cardId: Long) { deletedCards += cardId }
+        override suspend fun addContact(contact: ContactDraft): Long = 0
     }
 
     @Before

@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wizytowki.ui.home.DraftCard
+import com.wizytowki.ui.contact.AddContactScreen
 import com.wizytowki.ui.contact.BrowseScreen
 import com.wizytowki.ui.contact.CompanyDetailScreen
 import com.wizytowki.ui.contact.CompanyDetailViewModel
@@ -75,6 +76,7 @@ object Routes {
     const val BROWSE = "browse"
     const val CONTACT_EDIT = "contact_edit/{id}"
     const val COMPANY_EDIT = "company_edit/{id}"
+    const val CONTACT_NEW = "contact_new"
     const val SETTINGS = "settings"
 
     fun scan(resume: Boolean = false) = if (resume) "scan?${ScanViewModel.ARG_RESUME}=true" else "scan"
@@ -99,6 +101,7 @@ fun WizytowkiNavigation() {
                 onResume = { navController.navigate(Routes.scan(resume = true)) },
                 onOpenContact = { navController.navigate(Routes.contactDetail(it)) },
                 onBrowse = { navController.navigate(Routes.BROWSE) },
+                onAddManually = { navController.navigate(Routes.CONTACT_NEW) },
                 onSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
@@ -144,6 +147,15 @@ fun WizytowkiNavigation() {
                 // The card moved to a new contact: show that contact instead of this one.
                 onOpenContact = { navController.navigate(Routes.contactDetail(it)) { popUpTo(Routes.HOME) } },
                 onBack = { navController.popBackStack() },
+            )
+        }
+        composable(Routes.CONTACT_NEW) {
+            AddContactScreen(
+                viewModel = hiltViewModel(),
+                // The new contact's card replaces the form, so Back returns home.
+                onSaved = { id -> navController.navigate(Routes.contactDetail(id)) { popUpTo(Routes.HOME) } },
+                onOpenContact = { id -> navController.navigate(Routes.contactDetail(id)) { popUpTo(Routes.HOME) } },
+                onCancel = { navController.popBackStack() },
             )
         }
         composable(
