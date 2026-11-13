@@ -32,6 +32,8 @@ import com.wizytowki.ui.contact.CompanyDetailScreen
 import com.wizytowki.ui.contact.CompanyDetailViewModel
 import com.wizytowki.ui.contact.ContactDetailScreen
 import com.wizytowki.ui.contact.ContactDetailViewModel
+import com.wizytowki.ui.contact.MergeScreen
+import com.wizytowki.ui.contact.MergeViewModel
 import com.wizytowki.ui.home.HomeScreen
 import com.wizytowki.ui.preview.PreviewScreen
 import com.wizytowki.ui.scan.ScanScreen
@@ -64,11 +66,13 @@ object Routes {
     const val DUPLICATE = "duplicate"
     const val CONTACT_DETAIL = "contact_detail/{id}"
     const val COMPANY_DETAIL = "company_detail/{id}"
+    const val MERGE = "merge/{id}"
     const val SETTINGS = "settings"
 
     fun scan(resume: Boolean = false) = if (resume) "scan?${ScanViewModel.ARG_RESUME}=true" else "scan"
     fun contactDetail(id: Long) = "contact_detail/$id"
     fun companyDetail(id: Long) = "company_detail/$id"
+    fun merge(id: Long) = "merge/$id"
 }
 
 private data class NavLink(@StringRes val label: Int, val route: String)
@@ -116,7 +120,18 @@ fun WizytowkiNavigation() {
             ContactDetailScreen(
                 viewModel = hiltViewModel(),
                 onOpenCompany = { navController.navigate(Routes.companyDetail(it)) },
+                onMerge = { navController.navigate(Routes.merge(it)) },
                 onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            Routes.MERGE,
+            arguments = listOf(navArgument(MergeViewModel.ARG_ID) { type = NavType.LongType }),
+        ) {
+            MergeScreen(
+                viewModel = hiltViewModel(),
+                onDone = { navController.popBackStack() },
+                onCancel = { navController.popBackStack() },
             )
         }
         composable(
