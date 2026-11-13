@@ -23,7 +23,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.wizytowki.ui.preview.CommentSection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -62,6 +68,10 @@ fun ContactDetailScreen(
     val state by viewModel.state.collectAsState()
     val movedTo by viewModel.movedTo.collectAsState()
     val splitFailed by viewModel.splitFailed.collectAsState()
+    val deleted by viewModel.deleted.collectAsState()
+    val deleteFailed by viewModel.deleteFailed.collectAsState()
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(deleted) { if (deleted) onBack() }
     LaunchedEffect(movedTo) {
         movedTo?.let {
             viewModel.movedShown()
@@ -79,13 +89,31 @@ fun ContactDetailScreen(
                 Button(onClick = { onEdit(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.edit_contact_action))
                 }
-                ContactCard(s.details, onOpenCompany, onSplitCard = viewModel::splitCard)
+                ContactCard(s.details, onOpenCompany, onSplitCard = viewModel::splitCard, onDeleteCard = viewModel::deleteCard)
                 val note by viewModel.note.collectAsState()
                 NoteSection(note, viewModel::editNote, viewModel::addDictation, viewModel::saveNote)
                 if (splitFailed) Text(stringResource(R.string.split_failed), color = MaterialTheme.colorScheme.error)
                 // Manual merge of two records of the same person (WF-35).
                 OutlinedButton(onClick = { onMerge(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.merge_action))
+                }
+                if (deleteFailed) Text(stringResource(R.string.delete_failed), color = MaterialTheme.colorScheme.error)
+                OutlinedButton(
+                    onClick = { confirmDelete = true },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.delete_contact))
+                }
+                if (confirmDelete) {
+                    ConfirmDelete(
+                        text = stringResource(R.string.delete_contact_confirm, s.details.cards.size),
+                        onConfirm = {
+                            confirmDelete = false
+                            viewModel.deletePerson()
+                        },
+                        onDismiss = { confirmDelete = false },
+                    )
                 }
             }
         }
@@ -100,7 +128,19 @@ fun ContactCard(
     details: ContactDetails,
     onOpenCompany: (Long) -> Unit,
     onSplitCard: ((BusinessCardEntity) -> Unit)? = null,
+    onDeleteCard: ((BusinessCardEntity) -> Unit)? = null,
 ) {
+    var cardToDelete by remember { mutableStateOf<BusinessCardEntity?>(null) }
+    cardToDelete?.let { card ->
+        ConfirmDelete(
+            text = stringResource(R.string.delete_card_confirm),
+            onConfirm = {
+                cardToDelete = null
+                onDeleteCard?.invoke(card)
+            },
+            onDismiss = { cardToDelete = null },
+        )
+    }
     val context = LocalContext.current
     val contact = details.contact
     val open: (Intent) -> Unit = { QuickActions.open(context, it) }
@@ -163,7 +203,9 @@ fun ContactCard(
         Text(stringResource(R.string.contact_cards, details.cards.size), style = MaterialTheme.typography.titleMedium)
         // A card can move to a new contact only if this person keeps at least one (WF-35).
         val split = onSplitCard.takeIf { details.cards.size > 1 }
-        details.cards.forEach { card -> ScannedCard(card, split?.let { { it(card) } }) }
+        details.cards.forEach { card ->
+            ScannedCard(card, split?.let { { it(card) } }, onDeleteCard?.let { { cardToDelete = card } })
+        }
     }
 }
 
@@ -187,7 +229,7 @@ private fun JobRow(job: JobHistoryItem, onOpenCompany: () -> Unit) {
 
 /** One scanned card of the person (WF-34): photos, date, event and place. */
 @Composable
-private fun ScannedCard(card: BusinessCardEntity, onSplit: (() -> Unit)?) {
+private fun ScannedCard(card: BusinessCardEntity, onSplit: (() -> Unit)?, onDelete: (() -> Unit)?) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CardThumbnails(listOf(card.frontPhotoPath, card.backPhotoPath).filter { it.isNotBlank() }.map { "file://$it" })
@@ -196,6 +238,13 @@ private fun ScannedCard(card: BusinessCardEntity, onSplit: (() -> Unit)?) {
             if (where.isNotEmpty()) Text(where, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (onSplit != null) {
                 TextButton(onClick = onSplit, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.split_action)) }
+            }
+            if (onDelete != null) {
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) { Text(stringResource(R.string.delete_card)) }
             }
         }
     }
@@ -257,4 +306,19 @@ fun NoteSection(note: NoteState, onEdit: (String) -> Unit, onDictated: (String) 
             Text(stringResource(R.string.note_add))
         }
     }
+}
+
+/** Deleting cannot be undone, so it is confirmed (UI-02 allows asking when it is needed). */
+@Composable
+private fun ConfirmDelete(text: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        text = { Text(text) },
+        confirmButton = {
+            TextButton(onClick = onConfirm, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                Text(stringResource(R.string.delete_confirm))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }

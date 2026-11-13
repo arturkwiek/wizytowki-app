@@ -55,6 +55,8 @@ class EditContactViewModelTest {
         }
         override suspend fun addNote(personId: Long, note: String) = Unit
         override suspend fun editCompany(companyId: Long, edit: com.wizytowki.data.CompanyEdit) = Unit
+        override suspend fun deletePerson(personId: Long) = Unit
+        override suspend fun deleteCard(cardId: Long) = Unit
     }
 
     @Before

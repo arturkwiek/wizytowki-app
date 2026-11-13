@@ -67,4 +67,17 @@ class ContactCardTest {
         compose.onNodeWithText(context.getString(R.string.contact_cards, 1)).assertIsDisplayed()
         compose.onNodeWithText("Targi 2026").assertIsDisplayed()
     }
+
+    @Test
+    fun deletingACardIsConfirmedFirst() {
+        var deleted: BusinessCardEntity? = null
+        val card = BusinessCardEntity(id = 4, personId = 1, frontPhotoPath = "/missing.jpg", event = "Targi")
+        val details = ContactDetails(1, null, ContactDraft(firstName = "Ola"), listOf(card))
+        compose.setContent { Column { ContactCard(details, onOpenCompany = {}, onDeleteCard = { deleted = it }) } }
+
+        compose.onNodeWithText(context.getString(R.string.delete_card)).performClick()
+        assertEquals(null, deleted)
+        compose.onNodeWithText(context.getString(R.string.delete_confirm)).performClick()
+        assertEquals(4L, deleted?.id)
+    }
 }

@@ -61,6 +61,8 @@ private class FakeContacts(var fail: Boolean = false) : ContactRepository {
     override suspend fun editContact(personId: Long, contact: ContactDraft) = Unit
     override suspend fun addNote(personId: Long, note: String) = Unit
     override suspend fun editCompany(companyId: Long, edit: com.wizytowki.data.CompanyEdit) = Unit
+    override suspend fun deletePerson(personId: Long) = Unit
+    override suspend fun deleteCard(cardId: Long) = Unit
 
     var existing: List<SavedContact> = emptyList()
     val updated = mutableListOf<Pair<SavedContact, ContactDraft>>()

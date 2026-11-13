@@ -273,4 +273,32 @@ class ContactRepositoryTest {
         assertEquals(1, jobs.size)
         assertEquals("Zupełnie Inna Sp. z o.o.", repository.savedContacts().single().contact.company)
     }
+
+    @Test
+    fun deletePersonRemovesCardsAndPhotosButKeepsTheCompany() = runBlocking {
+        val jan = repository.saveNew(ContactDraft(firstName = "Jan", company = "ACME S.A."), ScanRecord(photo("d1.jpg"), photo("d2.jpg"), ""))
+        val anna = repository.saveNew(ContactDraft(firstName = "Anna", company = "ACME S.A."), ScanRecord(photo("d3.jpg"), null, ""))
+        val photos = jan.cardPhotos
+
+        repository.deletePerson(jan.personId)
+
+        assertEquals(listOf(anna.personId), repository.savedContacts().map { it.personId })
+        assertTrue(db.businessCardDao().getCardsByPerson(jan.personId).first().isEmpty())
+        assertTrue(db.employmentHistoryDao().getHistoryByPerson(jan.personId).first().isEmpty())
+        assertTrue(photos.none { File(it).exists() })
+        assertEquals(1, db.companyDao().getAllCompanies().first().size)
+    }
+
+    @Test
+    fun deleteCardKeepsThePerson() = runBlocking {
+        val first = ContactDraft(firstName = "Ola")
+        val id = repository.saveNew(first, ScanRecord(photo("d4.jpg"), null, "1")).personId
+        val second = repository.update(repository.savedContacts().single(), first, ScanRecord(photo("d5.jpg"), null, "2"))
+
+        repository.deleteCard(second.cardId)
+
+        assertEquals(listOf("1"), db.businessCardDao().getCardsByPerson(id).first().map { it.rawOcrText })
+        assertTrue(second.cardPhotos.none { File(it).exists() })
+        assertEquals("Ola", repository.savedContacts().single().contact.firstName)
+    }
 }

@@ -136,6 +136,12 @@
     <string name="edit_company_title">Edycja firmy</string>
     <string name="edit_company_shared">Zmiana będzie widoczna u wszystkich osób z tej firmy (%1$d).</string>
     <string name="edit_company_bad_nip">Ten NIP ma błędną sumę kontrolną – sprawdź cyfry.</string>
+    <string name="delete_contact">Usuń kontakt</string>
+    <string name="delete_contact_confirm">Usunąć ten kontakt razem z wizytówkami (%1$d) i ich zdjęciami? Tego nie da się cofnąć.</string>
+    <string name="delete_card">Usuń wizytówkę</string>
+    <string name="delete_card_confirm">Usunąć tę wizytówkę i jej zdjęcia? Dane kontaktu zostaną. Tego nie da się cofnąć.</string>
+    <string name="delete_confirm">Usuń</string>
+    <string name="delete_failed">Nie udało się usunąć.</string>
     <string name="company_missing">Ta firma nie istnieje (mogła zostać usunięta).</string>
     <string name="company_no_name">Firma bez nazwy</string>
     <string name="company_address_pl">Adres (PL)</string>

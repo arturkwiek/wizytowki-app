@@ -43,6 +43,8 @@ class ContactDetailViewModelTest {
 
     private val split = mutableListOf<Pair<Long, ContactDraft>>()
     private var failSplit = false
+    private val deletedPeople = mutableListOf<Long>()
+    private val deletedCards = mutableListOf<Long>()
     private val edited = mutableListOf<Pair<Long, ContactDraft>>()
     private val notes = mutableListOf<Pair<Long, String>>()
     private val repository = object : ContactRepository {
@@ -59,6 +61,8 @@ class ContactDetailViewModelTest {
         override suspend fun editContact(personId: Long, contact: ContactDraft) { edited += personId to contact }
         override suspend fun addNote(personId: Long, note: String) { notes += personId to note }
         override suspend fun editCompany(companyId: Long, edit: com.wizytowki.data.CompanyEdit) = Unit
+        override suspend fun deletePerson(personId: Long) { deletedPeople += personId }
+        override suspend fun deleteCard(cardId: Long) { deletedCards += cardId }
     }
 
     @Before
@@ -141,5 +145,16 @@ class ContactDetailViewModelTest {
         vm.editNote("   ")
         vm.saveNote()
         assertTrue(notes.isEmpty())
+    }
+
+    @Test
+    fun `#118 contact and single card are deleted`() {
+        val vm = vm()
+        vm.deleteCard(BusinessCardEntity(id = 8, personId = 7, frontPhotoPath = "/f.jpg"))
+        assertEquals(listOf(8L), deletedCards)
+
+        vm.deletePerson()
+        assertEquals(listOf(7L), deletedPeople)
+        assertTrue(vm.deleted.value)
     }
 }
