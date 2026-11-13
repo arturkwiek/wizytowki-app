@@ -57,6 +57,7 @@ class EditCompanyViewModelTest {
         }
         override suspend fun deletePerson(personId: Long) = Unit
         override suspend fun deleteCard(cardId: Long) = Unit
+        override suspend fun addContact(contact: ContactDraft): Long = 0
     }
 
     @Before

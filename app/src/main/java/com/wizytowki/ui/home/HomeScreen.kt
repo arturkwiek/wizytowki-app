@@ -39,6 +39,7 @@ fun HomeScreen(
     onResume: () -> Unit,
     onOpenContact: (Long) -> Unit,
     onBrowse: () -> Unit,
+    onAddManually: () -> Unit,
     onSettings: () -> Unit,
 ) {
     val count by viewModel.contactCount.collectAsState()
@@ -58,6 +59,10 @@ fun HomeScreen(
         // The whole database of people and companies, with search (REQUIREMENTS 8a, screen 1; #112).
         OutlinedButton(onClick = onBrowse, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
             Text(stringResource(R.string.home_browse))
+        }
+        // A contact without a card, e.g. from a conversation (#118).
+        OutlinedButton(onClick = onAddManually, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.home_add_manually))
         }
         if (recent.isNotEmpty()) {
             Text(stringResource(R.string.home_recent), style = MaterialTheme.typography.titleMedium)
