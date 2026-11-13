@@ -67,7 +67,13 @@ fun DuplicateReviewSection(review: DuplicateReview, save: SaveState, viewModel: 
 }
 
 @Composable
-private fun FieldChoice(diff: FieldDiff, selected: Choice, onChoose: (Choice) -> Unit) {
+internal fun FieldChoice(
+    diff: FieldDiff,
+    selected: Choice,
+    @StringRes savedLabel: Int = R.string.duplicate_saved_value,
+    @StringRes newLabel: Int = R.string.duplicate_new_value,
+    onChoose: (Choice) -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp).selectableGroup()) {
             Text(fieldLabel(diff.field), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -75,8 +81,8 @@ private fun FieldChoice(diff: FieldDiff, selected: Choice, onChoose: (Choice) ->
                 Text(diff.values(selected).joinToString(", "), style = MaterialTheme.typography.bodyLarge)
                 Text(stringResource(R.string.duplicate_unchanged), style = MaterialTheme.typography.bodySmall)
             } else {
-                Option(R.string.duplicate_saved_value, diff.saved, selected == Choice.SAVED) { onChoose(Choice.SAVED) }
-                Option(R.string.duplicate_new_value, diff.new, selected == Choice.NEW) { onChoose(Choice.NEW) }
+                Option(savedLabel, diff.saved, selected == Choice.SAVED) { onChoose(Choice.SAVED) }
+                Option(newLabel, diff.new, selected == Choice.NEW) { onChoose(Choice.NEW) }
                 if (diff.field.multi && diff.saved.isNotEmpty() && diff.new.isNotEmpty()) {
                     Option(R.string.duplicate_both, diff.saved + diff.new, selected == Choice.BOTH) { onChoose(Choice.BOTH) }
                 }

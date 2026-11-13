@@ -85,6 +85,9 @@ interface ContactRepository {
 
     /** Reverts [change] completely: database records and the kept photos of that scan (#25). */
     suspend fun undo(change: SavedChange)
+
+    /** Merges two saved people into [keep] with the user's chosen data (WF-35). */
+    suspend fun mergePeople(keep: SavedContact, removeId: Long, result: ContactDraft)
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -132,41 +135,74 @@ class RoomContactRepository @Inject constructor(
         val card = keepPhotos(scan)
         val now = LocalDateTime.now()
         return db.withTransaction {
-            val personId = saved.personId
-            val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
-            val company = saved.companyId?.let { db.companyDao().getCompanyById(it).first() }
-            val jobs = db.employmentHistoryDao().getHistoryByPerson(personId).first()
-            // A company record without a name (only position on the card) stays the same company.
-            val sameCompany = company != null &&
-                (CompanyMatcher.matches(contact, company.toSaved()) || company.name.isBlank() && contact.company.isBlank())
-            var createdCompanyId: Long? = null
-            var linkedCompanyBefore: CompanyEntity? = null
-
-            val companyId = when {
-                sameCompany -> {
-                    val updated = contact.toCompany(now)
-                    db.companyDao().update(updated.copy(id = company!!.id, createdAt = company.createdAt))
-                    jobs.firstOrNull { it.isCurrent && it.companyId == company.id }?.let { job ->
-                        db.employmentHistoryDao().update(contact.toEmployment(personId, company.id, now).copy(id = job.id, dateFrom = job.dateFrom))
-                    } ?: db.employmentHistoryDao().insert(contact.toEmployment(personId, company.id, now))
-                    company.id
-                }
-                contact.hasCompanyData -> {
-                    // New employer: the previous job stays in the history (WF-34).
-                    jobs.filter { it.isCurrent }.forEach { db.employmentHistoryDao().update(it.copy(isCurrent = false, dateTo = now)) }
-                    val link = linkCompany(contact, now)
-                    if (link.created) createdCompanyId = link.id else linkedCompanyBefore = link.before
-                    db.employmentHistoryDao().insert(contact.toEmployment(personId, link.id, now))
-                    link.id
-                }
-                else -> person.currentCompanyId
-            }
-            // Notes from earlier scans stay; a new note is added below them (WF-23).
-            val comment = listOf(person.comment, contact.comment).filter { it.isNotBlank() }.distinct().joinToString("\n\n")
-            db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = comment, createdAt = person.createdAt))
-            val cardId = db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
-            SavedChange.Updated(personId, cardId, card.photos(), person, company, jobs, createdCompanyId, linkedCompanyBefore)
+            val applied = applyContact(saved, contact, now)
+            val cardId = db.businessCardDao().insert(card.copy(personId = saved.personId, scannedAt = now))
+            SavedChange.Updated(
+                saved.personId, cardId, card.photos(), applied.person, applied.company, applied.jobs,
+                applied.createdCompanyId, applied.linkedCompanyBefore,
+            )
         }
+    }
+
+    /**
+     * Manual merge (WF-35, #32): [removeId] becomes part of [keep] – their cards and job history move
+     * over (former jobs stay in the history as ended), [result] is the merged data chosen by the
+     * user, comments of both are kept, and the second person record is deleted.
+     */
+    override suspend fun mergePeople(keep: SavedContact, removeId: Long, result: ContactDraft) {
+        val now = LocalDateTime.now()
+        db.withTransaction {
+            val removed = db.personDao().getPersonById(removeId).first() ?: error("Person $removeId was deleted")
+            db.businessCardDao().moveCards(removeId, keep.personId)
+            db.employmentHistoryDao().moveJobs(removeId, keep.personId, now)
+            db.personDao().delete(removeId)
+            applyContact(keep, result.copy(comment = removed.comment), now)
+        }
+    }
+
+    private class Applied(
+        val person: PersonEntity,
+        val company: CompanyEntity?,
+        val jobs: List<EmploymentHistoryEntity>,
+        val createdCompanyId: Long?,
+        val linkedCompanyBefore: CompanyEntity?,
+    )
+
+    /** Writes [contact] over a saved person, their company and current job; call inside a transaction. */
+    private suspend fun applyContact(saved: SavedContact, contact: ContactDraft, now: LocalDateTime): Applied {
+        val personId = saved.personId
+        val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
+        val company = saved.companyId?.let { db.companyDao().getCompanyById(it).first() }
+        val jobs = db.employmentHistoryDao().getHistoryByPerson(personId).first()
+        // A company record without a name (only position on the card) stays the same company.
+        val sameCompany = company != null &&
+            (CompanyMatcher.matches(contact, company.toSaved()) || company.name.isBlank() && contact.company.isBlank())
+        var createdCompanyId: Long? = null
+        var linkedCompanyBefore: CompanyEntity? = null
+
+        val companyId = when {
+            sameCompany -> {
+                val updated = contact.toCompany(now)
+                db.companyDao().update(updated.copy(id = company!!.id, createdAt = company.createdAt))
+                jobs.firstOrNull { it.isCurrent && it.companyId == company.id }?.let { job ->
+                    db.employmentHistoryDao().update(contact.toEmployment(personId, company.id, now).copy(id = job.id, dateFrom = job.dateFrom))
+                } ?: db.employmentHistoryDao().insert(contact.toEmployment(personId, company.id, now))
+                company.id
+            }
+            contact.hasCompanyData -> {
+                // New employer: the previous job stays in the history (WF-34).
+                jobs.filter { it.isCurrent }.forEach { db.employmentHistoryDao().update(it.copy(isCurrent = false, dateTo = now)) }
+                val link = linkCompany(contact, now)
+                if (link.created) createdCompanyId = link.id else linkedCompanyBefore = link.before
+                db.employmentHistoryDao().insert(contact.toEmployment(personId, link.id, now))
+                link.id
+            }
+            else -> person.currentCompanyId
+        }
+        // Notes from earlier scans stay; a new note is added below them (WF-23).
+        val comment = listOf(person.comment, contact.comment).filter { it.isNotBlank() }.distinct().joinToString("\n\n")
+        db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = comment, createdAt = person.createdAt))
+        return Applied(person, company, jobs, createdCompanyId, linkedCompanyBefore)
     }
 
     override suspend fun undo(change: SavedChange) {

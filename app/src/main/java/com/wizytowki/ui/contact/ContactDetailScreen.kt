@@ -47,7 +47,12 @@ import java.time.format.FormatStyle
  * address opens it as well.
  */
 @Composable
-fun ContactDetailScreen(viewModel: ContactDetailViewModel, onOpenCompany: (Long) -> Unit, onBack: () -> Unit) {
+fun ContactDetailScreen(
+    viewModel: ContactDetailViewModel,
+    onOpenCompany: (Long) -> Unit,
+    onMerge: (Long) -> Unit,
+    onBack: () -> Unit,
+) {
     val state by viewModel.state.collectAsState()
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -56,7 +61,13 @@ fun ContactDetailScreen(viewModel: ContactDetailViewModel, onOpenCompany: (Long)
         when (val s = state) {
             ContactDetailState.Loading -> Unit
             ContactDetailState.Missing -> Text(stringResource(R.string.contact_missing), style = MaterialTheme.typography.bodyLarge)
-            is ContactDetailState.Ready -> ContactCard(s.details, onOpenCompany)
+            is ContactDetailState.Ready -> {
+                ContactCard(s.details, onOpenCompany)
+                // Manual merge of two records of the same person (WF-35).
+                OutlinedButton(onClick = { onMerge(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.merge_action))
+                }
+            }
         }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(R.string.action_back))

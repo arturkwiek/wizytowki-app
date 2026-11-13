@@ -205,4 +205,28 @@ class ContactRepositoryTest {
         val jan = repository.savedContacts().single { it.personId != id }
         assertEquals(jan.companyId, repository.savedContacts().single { it.personId == id }.companyId)
     }
+
+    @Test
+    fun mergeJoinsCardsHistoryAndComments() = runBlocking {
+        val jan = repository.saveNew(
+            ContactDraft(firstName = "Jan", lastName = "Kowalski", phones = listOf("+48600100200"), company = "ACME S.A.", positionPl = "Prezes", comment = "pierwszy"),
+            ScanRecord(photo("g1.jpg"), null, ""),
+        )
+        val janek = repository.saveNew(
+            ContactDraft(firstName = "Janek", lastName = "Kowalski", emails = listOf("jan@stara.pl"), company = "Stara Firma Sp. z o.o.", positionPl = "Analityk", comment = "drugi"),
+            ScanRecord(photo("g2.jpg"), null, ""),
+        )
+        val keep = repository.savedContacts().single { it.personId == jan.personId }
+
+        repository.mergePeople(keep, janek.personId, keep.contact.copy(emails = listOf("jan@stara.pl")))
+
+        val people = repository.savedContacts()
+        assertEquals(listOf(jan.personId), people.map { it.personId })
+        assertEquals(listOf("jan@stara.pl"), people.single().contact.emails)
+        assertEquals("ACME S.A.", people.single().contact.company)
+        assertEquals(2, db.businessCardDao().getCardsByPerson(jan.personId).first().size)
+        val jobs = db.employmentHistoryDao().getHistoryByPerson(jan.personId).first()
+        assertEquals(setOf("Prezes" to true, "Analityk" to false), jobs.map { it.positionPl to it.isCurrent }.toSet())
+        assertEquals("pierwszy\n\ndrugi", db.personDao().getPersonById(jan.personId).first()!!.comment)
+    }
 }
