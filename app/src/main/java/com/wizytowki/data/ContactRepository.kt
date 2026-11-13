@@ -32,10 +32,40 @@ data class ScanRecord(
     val location: String = "",
 )
 
+/**
+ * What one save changed, so it can be undone (#25). [cardPhotos] are the kept photos of the
+ * scan (front, then back if any) – the scan can be restored from them.
+ */
+sealed interface SavedChange {
+    val personId: Long
+    val cardId: Long
+    val cardPhotos: List<String>
+
+    /** A new person, with the company created for them, if any. */
+    data class Created(
+        override val personId: Long,
+        override val cardId: Long,
+        override val cardPhotos: List<String>,
+        val companyId: Long?,
+    ) : SavedChange
+
+    /** An existing person updated: their records as they were before. */
+    data class Updated(
+        override val personId: Long,
+        override val cardId: Long,
+        override val cardPhotos: List<String>,
+        val personBefore: PersonEntity,
+        val companyBefore: CompanyEntity?,
+        val jobsBefore: List<EmploymentHistoryEntity>,
+        /** Company created by this update (new employer), deleted on undo. */
+        val createdCompanyId: Long?,
+    ) : SavedChange
+}
+
 /** Saved contacts (#98). */
 interface ContactRepository {
-    /** Saves a new person (with company, position and the scanned card); returns the person id. */
-    suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): Long
+    /** Saves a new person (with company, position and the scanned card). */
+    suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): SavedChange
 
     /** All saved people with their current company and position, for finding duplicates (WF-32). */
     suspend fun savedContacts(): List<SavedContact>
@@ -44,7 +74,10 @@ interface ContactRepository {
      * Updates a saved person with the merged [contact] and adds the scan to their cards (WF-32, WF-34).
      * A different company ends the current job and starts a new one, keeping the history.
      */
-    suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord)
+    suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord): SavedChange
+
+    /** Reverts [change] completely: database records and the kept photos of that scan (#25). */
+    suspend fun undo(change: SavedChange)
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -73,7 +106,7 @@ class RoomContactRepository @Inject constructor(
     private val photos: CardPhotoStore,
 ) : ContactRepository {
 
-    override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): Long {
+    override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): SavedChange {
         val card = keepPhotos(scan)
         val now = LocalDateTime.now()
         return db.withTransaction {
@@ -82,20 +115,21 @@ class RoomContactRepository @Inject constructor(
             if (companyId != null) {
                 db.employmentHistoryDao().insert(contact.toEmployment(personId, companyId, now))
             }
-            db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
-            personId
+            val cardId = db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
+            SavedChange.Created(personId, cardId, card.photos(), companyId)
         }
     }
 
-    override suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord) {
+    override suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord): SavedChange {
         val card = keepPhotos(scan)
         val now = LocalDateTime.now()
-        db.withTransaction {
+        return db.withTransaction {
             val personId = saved.personId
             val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
             val company = saved.companyId?.let { db.companyDao().getCompanyById(it).first() }
             val jobs = db.employmentHistoryDao().getHistoryByPerson(personId).first()
             val sameCompany = company != null && fold(company.name) == fold(contact.company)
+            var createdCompanyId: Long? = null
 
             val companyId = when {
                 sameCompany -> {
@@ -110,6 +144,7 @@ class RoomContactRepository @Inject constructor(
                     // New employer: the previous job stays in the history (WF-34).
                     jobs.filter { it.isCurrent }.forEach { db.employmentHistoryDao().update(it.copy(isCurrent = false, dateTo = now)) }
                     val id = db.companyDao().insert(contact.toCompany(now))
+                    createdCompanyId = id
                     db.employmentHistoryDao().insert(contact.toEmployment(personId, id, now))
                     id
                 }
@@ -118,9 +153,35 @@ class RoomContactRepository @Inject constructor(
             // Notes from earlier scans stay; a new note is added below them (WF-23).
             val comment = listOf(person.comment, contact.comment).filter { it.isNotBlank() }.distinct().joinToString("\n\n")
             db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = comment, createdAt = person.createdAt))
-            db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
+            val cardId = db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
+            SavedChange.Updated(personId, cardId, card.photos(), person, company, jobs, createdCompanyId)
         }
     }
+
+    override suspend fun undo(change: SavedChange) {
+        db.withTransaction {
+            val jobs = db.employmentHistoryDao()
+            when (change) {
+                is SavedChange.Created -> {
+                    db.businessCardDao().getCardsByPerson(change.personId).first().forEach { db.businessCardDao().delete(it.id) }
+                    jobs.getHistoryByPerson(change.personId).first().forEach { jobs.delete(it.id) }
+                    db.personDao().delete(change.personId)
+                    change.companyId?.let { db.companyDao().delete(it) }
+                }
+                is SavedChange.Updated -> {
+                    db.businessCardDao().delete(change.cardId)
+                    jobs.getHistoryByPerson(change.personId).first().forEach { jobs.delete(it.id) }
+                    change.jobsBefore.forEach { jobs.insert(it) }
+                    change.companyBefore?.let { db.companyDao().update(it) }
+                    change.createdCompanyId?.let { db.companyDao().delete(it) }
+                    db.personDao().update(change.personBefore)
+                }
+            }
+        }
+        withContext(Dispatchers.IO) { change.cardPhotos.forEach { File(it).delete() } }
+    }
+
+    private fun BusinessCardEntity.photos() = listOf(frontPhotoPath, backPhotoPath).filter { it.isNotEmpty() }
 
     private suspend fun keepPhotos(scan: ScanRecord): BusinessCardEntity {
         val stamp = System.currentTimeMillis()

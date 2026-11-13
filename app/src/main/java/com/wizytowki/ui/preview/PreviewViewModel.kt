@@ -3,6 +3,7 @@ package com.wizytowki.ui.preview
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.SavedChange
 import com.wizytowki.data.ScanRecord
 import com.wizytowki.domain.CardMerger
 import com.wizytowki.domain.Choice
@@ -59,11 +60,11 @@ sealed interface PreviewUiState {
                 }
             }
 
-        val editable: Boolean get() = save != SaveState.SAVED && save != SaveState.UPDATED && save != SaveState.SAVING
+        val editable: Boolean get() = save == SaveState.IDLE || save == SaveState.FAILED
     }
 }
 
-enum class SaveState { IDLE, SAVING, SAVED, UPDATED, FAILED }
+enum class SaveState { IDLE, SAVING, SAVED, UPDATED, FAILED, UNDO_FAILED }
 
 /**
  * The scanned person is already saved (WF-32): the saved and new values side by side with the
@@ -95,6 +96,7 @@ class PreviewViewModel @Inject constructor(
     private val _state = MutableStateFlow<PreviewUiState>(PreviewUiState.Analyzing)
     val state: StateFlow<PreviewUiState> = _state.asStateFlow()
     private var session: ScanSession? = null
+    private var lastChange: SavedChange? = null
 
     init {
         analyze()
@@ -115,8 +117,7 @@ class PreviewViewModel @Inject constructor(
         if (match != null) {
             ready.copy(save = SaveState.IDLE, review = DuplicateReview(match, new))
         } else {
-            contacts.saveNew(new, scan)
-            finished(ready, SaveState.SAVED)
+            finished(ready, SaveState.SAVED, contacts.saveNew(new, scan))
         }
     }
 
@@ -162,15 +163,13 @@ class PreviewViewModel @Inject constructor(
     /** Updates the saved person with the chosen values and adds this card to them. */
     fun confirmUpdate() = persist { ready, scan ->
         val review = ready.review ?: return@persist ready
-        contacts.update(review.match.saved, review.result.copy(comment = review.new.comment), scan)
-        finished(ready, SaveState.UPDATED)
+        finished(ready, SaveState.UPDATED, contacts.update(review.match.saved, review.result.copy(comment = review.new.comment), scan))
     }
 
     /** Not the same person after all: saves the scan as a separate contact. */
     fun saveAsNew() = persist { ready, scan ->
         val review = ready.review ?: return@persist ready
-        contacts.saveNew(review.new, scan)
-        finished(ready, SaveState.SAVED)
+        finished(ready, SaveState.SAVED, contacts.saveNew(review.new, scan))
     }
 
     fun cancelReview() = updateReview { null }
@@ -181,15 +180,44 @@ class PreviewViewModel @Inject constructor(
         _state.value = ready.copy(review = change(review))
     }
 
-    private suspend fun finished(ready: PreviewUiState.Ready, result: SaveState): PreviewUiState.Ready {
+    private suspend fun finished(ready: PreviewUiState.Ready, result: SaveState, change: SavedChange): PreviewUiState.Ready {
+        lastChange = change
         draftStore.clear()
         return ready.copy(save = result, review = null)
+    }
+
+    /**
+     * Undoes the last save or update (#25): the database returns to its earlier state and the scan
+     * goes back to the draft – restored from the kept photos – so it can be edited and saved again.
+     */
+    fun undo() {
+        val ready = _state.value as? PreviewUiState.Ready ?: return
+        val change = lastChange ?: return
+        if (ready.save !in setOf(SaveState.SAVED, SaveState.UPDATED, SaveState.UNDO_FAILED)) return
+        _state.value = ready.copy(save = SaveState.SAVING)
+        viewModelScope.launch {
+            _state.value = try {
+                val photos = change.cardPhotos.mapIndexed { i, path ->
+                    draftStore.importImage("file://$path", if (i == 0) "front" else "back")
+                }
+                val restored = ScanSession(frontUri = photos.first(), backUri = photos.getOrNull(1), backSkipped = photos.size < 2)
+                draftStore.save(restored)
+                contacts.undo(change)
+                session = restored
+                lastChange = null
+                ready.copy(save = SaveState.IDLE, photos = photos)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ready.copy(save = SaveState.UNDO_FAILED, photos = ready.photos)
+            }
+        }
     }
 
     private fun persist(action: suspend (PreviewUiState.Ready, ScanRecord) -> PreviewUiState.Ready) {
         val ready = _state.value as? PreviewUiState.Ready ?: return
         val front = session?.frontUri ?: return
-        if (ready.save in setOf(SaveState.SAVING, SaveState.SAVED, SaveState.UPDATED)) return
+        if (ready.save != SaveState.IDLE && ready.save != SaveState.FAILED) return
         _state.value = ready.copy(save = SaveState.SAVING)
         viewModelScope.launch {
             _state.value = try {
