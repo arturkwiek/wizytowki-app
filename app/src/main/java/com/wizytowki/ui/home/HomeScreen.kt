@@ -37,6 +37,7 @@ fun HomeScreen(
     onScan: () -> Unit,
     onResume: () -> Unit,
     onOpenContact: (Long) -> Unit,
+    onBrowse: () -> Unit,
     onSettings: () -> Unit,
 ) {
     val count by viewModel.contactCount.collectAsState()
@@ -52,6 +53,10 @@ fun HomeScreen(
         Button(onClick = onScan, modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp)) {
             Icon(Icons.Filled.CameraAlt, contentDescription = null)
             Text(stringResource(R.string.nav_scan), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 12.dp))
+        }
+        // The whole database of people and companies, with search (REQUIREMENTS 8a, screen 1; #112).
+        OutlinedButton(onClick = onBrowse, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            Text(stringResource(R.string.home_browse))
         }
         if (recent.isNotEmpty()) {
             Text(stringResource(R.string.home_recent), style = MaterialTheme.typography.titleMedium)

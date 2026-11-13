@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wizytowki.ui.home.DraftCard
+import com.wizytowki.ui.contact.BrowseScreen
 import com.wizytowki.ui.contact.CompanyDetailScreen
 import com.wizytowki.ui.contact.CompanyDetailViewModel
 import com.wizytowki.ui.contact.ContactDetailScreen
@@ -67,6 +68,7 @@ object Routes {
     const val CONTACT_DETAIL = "contact_detail/{id}"
     const val COMPANY_DETAIL = "company_detail/{id}"
     const val MERGE = "merge/{id}"
+    const val BROWSE = "browse"
     const val SETTINGS = "settings"
 
     fun scan(resume: Boolean = false) = if (resume) "scan?${ScanViewModel.ARG_RESUME}=true" else "scan"
@@ -88,7 +90,16 @@ fun WizytowkiNavigation() {
                 onScan = { navController.navigate(Routes.scan()) },
                 onResume = { navController.navigate(Routes.scan(resume = true)) },
                 onOpenContact = { navController.navigate(Routes.contactDetail(it)) },
+                onBrowse = { navController.navigate(Routes.BROWSE) },
                 onSettings = { navController.navigate(Routes.SETTINGS) },
+            )
+        }
+        composable(Routes.BROWSE) {
+            BrowseScreen(
+                viewModel = hiltViewModel(),
+                onOpenContact = { navController.navigate(Routes.contactDetail(it)) },
+                onOpenCompany = { navController.navigate(Routes.companyDetail(it)) },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(
