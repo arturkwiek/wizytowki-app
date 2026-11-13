@@ -127,6 +127,12 @@
     <string name="merge_failed">Could not merge the contacts.</string>
     <string name="split_action">Move to a new contact</string>
     <string name="split_failed">Could not move the card.</string>
+    <string name="edit_contact_action">Edit</string>
+    <string name="edit_contact_title">Edit contact</string>
+    <string name="edit_contact_note">Corrections do not go into the employment history. Record a job change by scanning the new card.</string>
+    <string name="note_title">Add a note</string>
+    <string name="note_add">Save note</string>
+    <string name="note_failed">Could not save the note.</string>
     <string name="company_missing">This company does not exist (it may have been deleted).</string>
     <string name="company_no_name">Company without a name</string>
     <string name="company_address_pl">Address (PL)</string>

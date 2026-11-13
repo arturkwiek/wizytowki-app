@@ -54,6 +54,8 @@ class MergeViewModelTest {
             merged += Triple(keep, removeId, result)
         }
         override suspend fun splitCard(cardId: Long, contact: ContactDraft): Long = 99
+        override suspend fun editContact(personId: Long, contact: ContactDraft) = Unit
+        override suspend fun addNote(personId: Long, note: String) = Unit
     }
 
     @Before

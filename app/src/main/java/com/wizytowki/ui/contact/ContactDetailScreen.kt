@@ -23,6 +23,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.Button
+import com.wizytowki.ui.preview.CommentSection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +55,7 @@ fun ContactDetailScreen(
     viewModel: ContactDetailViewModel,
     onOpenCompany: (Long) -> Unit,
     onMerge: (Long) -> Unit,
+    onEdit: (Long) -> Unit,
     onOpenContact: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -73,7 +76,12 @@ fun ContactDetailScreen(
             ContactDetailState.Loading -> Unit
             ContactDetailState.Missing -> Text(stringResource(R.string.contact_missing), style = MaterialTheme.typography.bodyLarge)
             is ContactDetailState.Ready -> {
+                Button(onClick = { onEdit(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.edit_contact_action))
+                }
                 ContactCard(s.details, onOpenCompany, onSplitCard = viewModel::splitCard)
+                val note by viewModel.note.collectAsState()
+                NoteSection(note, viewModel::editNote, viewModel::addDictation, viewModel::saveNote)
                 if (splitFailed) Text(stringResource(R.string.split_failed), color = MaterialTheme.colorScheme.error)
                 // Manual merge of two records of the same person (WF-35).
                 OutlinedButton(onClick = { onMerge(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -233,3 +241,20 @@ private val SHOWN_FIELDS = listOf(
     ContactField.POSITION_EN, ContactField.DEPARTMENT_PL, ContactField.DEPARTMENT_EN,
     ContactField.ADDRESS_PL, ContactField.ADDRESS_EN, ContactField.NIP,
 )
+
+/** Adding a note later, typed or dictated (WF-23, #115); saved below the earlier comments. */
+@Composable
+fun NoteSection(note: NoteState, onEdit: (String) -> Unit, onDictated: (String) -> Unit, onSave: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.note_title), style = MaterialTheme.typography.titleMedium)
+        CommentSection(note.text, enabled = !note.saving, onEdit = onEdit, onDictated = onDictated)
+        if (note.failed) Text(stringResource(R.string.note_failed), color = MaterialTheme.colorScheme.error)
+        FilledTonalButton(
+            onClick = onSave,
+            enabled = note.text.isNotBlank() && !note.saving,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            Text(stringResource(R.string.note_add))
+        }
+    }
+}
