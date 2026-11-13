@@ -88,6 +88,12 @@ interface ContactRepository {
 
     /** Merges two saved people into [keep] with the user's chosen data (WF-35). */
     suspend fun mergePeople(keep: SavedContact, removeId: Long, result: ContactDraft)
+
+    /**
+     * Manual split (WF-35): moves card [cardId] to a new person with [contact] (with company and
+     * position, like a new save); returns the new person's id.
+     */
+    suspend fun splitCard(cardId: Long, contact: ContactDraft): Long
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -157,6 +163,17 @@ class RoomContactRepository @Inject constructor(
             db.employmentHistoryDao().moveJobs(removeId, keep.personId, now)
             db.personDao().delete(removeId)
             applyContact(keep, result.copy(comment = removed.comment), now)
+        }
+    }
+
+    override suspend fun splitCard(cardId: Long, contact: ContactDraft): Long {
+        val now = LocalDateTime.now()
+        return db.withTransaction {
+            val company = if (contact.hasCompanyData) linkCompany(contact, now) else null
+            val personId = db.personDao().insert(contact.toPerson(company?.id, now))
+            if (company != null) db.employmentHistoryDao().insert(contact.toEmployment(personId, company.id, now))
+            db.businessCardDao().moveCard(cardId, personId)
+            personId
         }
     }
 

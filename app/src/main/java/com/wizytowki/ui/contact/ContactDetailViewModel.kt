@@ -5,11 +5,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wizytowki.data.ContactDetails
 import com.wizytowki.data.ContactQueries
+import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.db.entities.BusinessCardEntity
+import com.wizytowki.domain.CardMerger
+import com.wizytowki.domain.ContactDraft
+import com.wizytowki.extract.EntityExtractor
+import com.wizytowki.ocr.CardOcr
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface ContactDetailState {
@@ -25,6 +35,8 @@ sealed interface ContactDetailState {
 @HiltViewModel
 class ContactDetailViewModel @Inject constructor(
     queries: ContactQueries,
+    private val contacts: ContactRepository,
+    private val extractor: EntityExtractor,
     savedState: SavedStateHandle,
 ) : ViewModel() {
     private val personId: Long = checkNotNull(savedState.get<Long>(ARG_ID)) { "Missing $ARG_ID" }
@@ -32,6 +44,38 @@ class ContactDetailViewModel @Inject constructor(
     val state: StateFlow<ContactDetailState> = queries.contact(personId)
         .map { details -> details?.let { ContactDetailState.Ready(it) } ?: ContactDetailState.Missing }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ContactDetailState.Loading)
+
+    private val _movedTo = MutableStateFlow<Long?>(null)
+
+    /** New person a card was moved to; the screen opens their card, then calls [movedShown]. */
+    val movedTo: StateFlow<Long?> = _movedTo.asStateFlow()
+
+    private val _splitFailed = MutableStateFlow(false)
+    val splitFailed: StateFlow<Boolean> = _splitFailed.asStateFlow()
+
+    /**
+     * Manual split (WF-35): the card belongs to someone else. Its data is read again from the stored
+     * OCR text and the card moves to a new contact.
+     */
+    fun splitCard(card: BusinessCardEntity) {
+        viewModelScope.launch {
+            _splitFailed.value = false
+            try {
+                _movedTo.value = contacts.splitCard(card.id, contactFromCard(card))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _splitFailed.value = true
+            }
+        }
+    }
+
+    fun movedShown() {
+        _movedTo.value = null
+    }
+
+    private fun contactFromCard(card: BusinessCardEntity): ContactDraft =
+        ContactDraft.from(CardMerger.merge(extractor.extract(CardOcr.fromRawText(card.rawOcrText)))).cleaned()
 
     companion object {
         const val ARG_ID = "id"

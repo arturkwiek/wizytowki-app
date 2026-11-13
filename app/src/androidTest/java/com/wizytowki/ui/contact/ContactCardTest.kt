@@ -39,7 +39,7 @@ class ContactCardTest {
             ContactDraft(firstName = "Łukasz", lastName = "Żółkiewski", emails = listOf("l.z@acme.pl"), company = "ACME S.A.", positionPl = "Prezes"),
             emptyList(),
         )
-        compose.setContent { Column { ContactCard(details) { opened = it } } }
+        compose.setContent { Column { ContactCard(details, onOpenCompany = { opened = it }) } }
 
         compose.onNodeWithText("Łukasz Żółkiewski").assertIsDisplayed()
         compose.onNodeWithText("Prezes").assertIsDisplayed()
@@ -59,7 +59,7 @@ class ContactCardTest {
                 JobHistoryItem(1, "Stara Firma Sp. z o.o.", "Analityk", "", LocalDateTime.of(2024, 1, 1, 0, 0), LocalDateTime.of(2026, 2, 28, 0, 0), current = false),
             ),
         )
-        compose.setContent { Column { ContactCard(details) {} } }
+        compose.setContent { Column { ContactCard(details, onOpenCompany = {}) } }
 
         compose.onNodeWithText(context.getString(R.string.contact_history)).assertIsDisplayed()
         compose.onNodeWithText("Analityk · Stara Firma Sp. z o.o.").assertIsDisplayed()

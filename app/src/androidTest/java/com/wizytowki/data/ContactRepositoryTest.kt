@@ -229,4 +229,21 @@ class ContactRepositoryTest {
         assertEquals(setOf("Prezes" to true, "Analityk" to false), jobs.map { it.positionPl to it.isCurrent }.toSet())
         assertEquals("pierwszy\n\ndrugi", db.personDao().getPersonById(jan.personId).first()!!.comment)
     }
+
+    @Test
+    fun splitMovesTheCardToANewPerson() = runBlocking {
+        val first = ContactDraft(firstName = "Jan", lastName = "Kowalski", company = "ACME S.A.")
+        val jan = repository.saveNew(first, ScanRecord(photo("s1.jpg"), null, "jan")).personId
+        repository.update(repository.savedContacts().single(), first, ScanRecord(photo("s2.jpg"), null, "anna"))
+        val annaCard = db.businessCardDao().getCardsByPerson(jan).first().single { it.rawOcrText == "anna" }
+
+        val anna = repository.splitCard(annaCard.id, ContactDraft(firstName = "Anna", lastName = "Nowak", company = "ACME SA", positionPl = "Księgowa"))
+
+        assertEquals(listOf("jan"), db.businessCardDao().getCardsByPerson(jan).first().map { it.rawOcrText })
+        assertEquals(listOf("anna"), db.businessCardDao().getCardsByPerson(anna).first().map { it.rawOcrText })
+        val people = repository.savedContacts()
+        assertEquals(2, people.size)
+        assertEquals(1, people.map { it.companyId }.toSet().size)
+        assertEquals("Księgowa", people.single { it.personId == anna }.contact.positionPl)
+    }
 }

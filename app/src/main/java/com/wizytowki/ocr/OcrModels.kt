@@ -34,5 +34,21 @@ data class OcrPage(val blocks: List<OcrBlock>) {
 data class CardOcr(val front: OcrPage, val back: OcrPage?, val durationMs: Long) {
     /** Raw OCR text stored with the card (data model: "surowy tekst OCR"). */
     val rawText: String
-        get() = listOfNotNull(front.text, back?.text?.takeIf { it.isNotBlank() }).joinToString("\n\n---\n\n")
+        get() = listOfNotNull(front.text, back?.text?.takeIf { it.isNotBlank() }).joinToString(SIDE_SEPARATOR)
+
+    companion object {
+        private const val SIDE_SEPARATOR = "\n\n---\n\n"
+
+        /**
+         * The card read back from its stored [rawText] (WF-35: re-extracting a card moved to a new
+         * contact). Blocks and lines are kept; confidence and language are not stored, so they are unknown.
+         */
+        fun fromRawText(raw: String): CardOcr {
+            val sides = raw.split(SIDE_SEPARATOR)
+            fun page(text: String) = OcrPage(
+                text.split("\n\n").filter { it.isNotBlank() }.map { block -> OcrBlock(block.split("\n").map { OcrLine(it) }) },
+            )
+            return CardOcr(page(sides.first()), sides.getOrNull(1)?.let(::page), durationMs = 0)
+        }
+    }
 }

@@ -51,6 +51,7 @@ class MergeViewModelTest {
         override suspend fun mergePeople(keep: SavedContact, removeId: Long, result: ContactDraft) {
             merged += Triple(keep, removeId, result)
         }
+        override suspend fun splitCard(cardId: Long, contact: ContactDraft): Long = 99
     }
 
     @Before

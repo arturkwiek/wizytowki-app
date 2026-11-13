@@ -121,6 +121,8 @@ fun WizytowkiNavigation() {
                 viewModel = hiltViewModel(),
                 onOpenCompany = { navController.navigate(Routes.companyDetail(it)) },
                 onMerge = { navController.navigate(Routes.merge(it)) },
+                // The card moved to a new contact: show that contact instead of this one.
+                onOpenContact = { navController.navigate(Routes.contactDetail(it)) { popUpTo(Routes.HOME) } },
                 onBack = { navController.popBackStack() },
             )
         }
