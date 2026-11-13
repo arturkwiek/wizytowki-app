@@ -96,6 +96,13 @@
     <string name="action_back">Wstecz</string>
     <string name="home_contacts_count">Kontakty w bazie: %d</string>
     <string name="home_recent">Ostatnio dodane</string>
+    <string name="home_browse">Kontakty i firmy</string>
+    <string name="browse_title">Kontakty i firmy</string>
+    <string name="browse_search">Szukaj: imię, nazwisko, firma, telefon, e-mail</string>
+    <string name="browse_people">Osoby (%1$d)</string>
+    <string name="browse_companies">Firmy (%1$d)</string>
+    <string name="browse_empty">Nic nie znaleziono.</string>
+    <string name="browse_company_people">Osoby: %1$d</string>
     <string name="contact_missing">Ten kontakt nie istnieje (mógł zostać usunięty).</string>
     <string name="contact_no_name">Bez nazwiska</string>
     <string name="contact_call">Zadzwoń</string>

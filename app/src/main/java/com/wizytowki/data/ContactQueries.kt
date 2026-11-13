@@ -4,6 +4,7 @@ import com.wizytowki.data.db.WizytowkiDatabase
 import com.wizytowki.data.db.entities.BusinessCardEntity
 import com.wizytowki.data.db.entities.CompanyEntity
 import com.wizytowki.data.db.entities.EmploymentHistoryEntity
+import com.wizytowki.data.db.entities.PersonEntity
 import com.wizytowki.domain.ContactDraft
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -17,9 +18,14 @@ data class ContactSummary(
     val lastName: String,
     val company: String,
     val position: String,
+    /** Phones and e-mails, so a list can be searched by them too (#112). */
+    val contactData: List<String> = emptyList(),
 ) {
     val name: String get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
 }
+
+/** One row of the company list: the company and how many people work there (#112). */
+data class CompanySummary(val companyId: Long, val name: String, val nip: String, val people: Int)
 
 /** One job in the person's history (WF-34): company, position and dates; [dateTo] null while current. */
 data class JobHistoryItem(
@@ -51,6 +57,12 @@ data class CompanyDetails(val company: CompanyEntity, val people: List<ContactSu
 interface ContactQueries {
     fun recentContacts(limit: Int = 20): Flow<List<ContactSummary>>
 
+    /** Everyone, alphabetically by last name (REQUIREMENTS 8a, screen 1: the database of people). */
+    fun allContacts(): Flow<List<ContactSummary>>
+
+    /** Companies with a name (a nameless record only holds someone's position), for the company list. */
+    fun companies(): Flow<List<CompanySummary>>
+
     fun contact(personId: Long): Flow<ContactDetails?>
 
     fun company(companyId: Long): Flow<CompanyDetails?>
@@ -58,8 +70,21 @@ interface ContactQueries {
 
 class RoomContactQueries @Inject constructor(private val db: WizytowkiDatabase) : ContactQueries {
 
-    override fun recentContacts(limit: Int): Flow<List<ContactSummary>> = combine(
-        db.personDao().recentPersons(limit),
+    override fun recentContacts(limit: Int): Flow<List<ContactSummary>> = summaries(db.personDao().recentPersons(limit))
+
+    override fun allContacts(): Flow<List<ContactSummary>> = summaries(db.personDao().getAllPersons())
+
+    override fun companies(): Flow<List<CompanySummary>> = combine(
+        db.companyDao().getAllCompanies(),
+        db.personDao().getAllPersons(),
+    ) { companies, persons ->
+        val people = persons.groupingBy { it.currentCompanyId }.eachCount()
+        companies.map { CompanySummary(it.id, it.name, it.nip, people[it.id] ?: 0) }
+            .filter { it.name.isNotBlank() }
+    }
+
+    private fun summaries(personsFlow: Flow<List<PersonEntity>>): Flow<List<ContactSummary>> = combine(
+        personsFlow,
         db.companyDao().getAllCompanies(),
         db.employmentHistoryDao().currentJobs(),
     ) { persons, companies, jobs ->
@@ -73,6 +98,7 @@ class RoomContactQueries @Inject constructor(private val db: WizytowkiDatabase) 
                 lastName = person.lastName,
                 company = person.currentCompanyId?.let { companyNames[it] }.orEmpty(),
                 position = job?.positionPl?.ifBlank { job.positionEn }.orEmpty(),
+                contactData = person.phones.splitLines() + person.emails.splitLines(),
             )
         }
     }

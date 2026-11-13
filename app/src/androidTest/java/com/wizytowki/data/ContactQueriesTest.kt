@@ -100,4 +100,16 @@ class ContactQueriesTest {
         assertEquals(2, details.cards.size)
         assertEquals(setOf("Targi 2025", "Targi 2026"), details.cards.map { it.event }.toSet())
     }
+
+    @Test
+    fun everyoneAndCompaniesWithPeopleCount() = runBlocking {
+        repository.saveNew(ContactDraft(firstName = "Jan", lastName = "Kowalski", phones = listOf("+48600100200"), company = "ACME S.A."), scan("b1.jpg"))
+        repository.saveNew(ContactDraft(firstName = "Anna", lastName = "Nowak", emails = listOf("anna@acme.pl"), company = "Acme SA"), scan("b2.jpg"))
+        repository.saveNew(ContactDraft(firstName = "Ola", positionPl = "Analityk"), scan("b3.jpg"))
+
+        assertEquals(3, queries.allContacts().first().size)
+        assertEquals(listOf("+48600100200"), queries.allContacts().first().single { it.firstName == "Jan" }.contactData)
+        // The nameless company created only for Ola's position is not listed.
+        assertEquals(listOf("ACME S.A." to 2), queries.companies().first().map { it.name to it.people })
+    }
 }

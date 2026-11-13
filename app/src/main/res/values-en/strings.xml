@@ -96,6 +96,13 @@
     <string name="action_back">Back</string>
     <string name="home_contacts_count">Contacts in database: %d</string>
     <string name="home_recent">Recently added</string>
+    <string name="home_browse">Contacts and companies</string>
+    <string name="browse_title">Contacts and companies</string>
+    <string name="browse_search">Search: name, company, phone, email</string>
+    <string name="browse_people">People (%1$d)</string>
+    <string name="browse_companies">Companies (%1$d)</string>
+    <string name="browse_empty">Nothing found.</string>
+    <string name="browse_company_people">People: %1$d</string>
     <string name="contact_missing">This contact does not exist (it may have been deleted).</string>
     <string name="contact_no_name">No name</string>
     <string name="contact_call">Call</string>

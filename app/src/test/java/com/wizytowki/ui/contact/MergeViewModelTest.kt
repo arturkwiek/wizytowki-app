@@ -40,6 +40,8 @@ class MergeViewModelTest {
         )
         override fun contact(personId: Long): Flow<ContactDetails?> = flowOf(listOf(jan, janek).firstOrNull { it.personId == personId })
         override fun company(companyId: Long): Flow<CompanyDetails?> = flowOf(null)
+        override fun allContacts(): Flow<List<ContactSummary>> = flowOf(emptyList())
+        override fun companies(): Flow<List<com.wizytowki.data.CompanySummary>> = flowOf(emptyList())
     }
 
     private val merged = mutableListOf<Triple<SavedContact, Long, ContactDraft>>()

@@ -37,6 +37,8 @@ class ContactDetailViewModelTest {
         override fun recentContacts(limit: Int): Flow<List<ContactSummary>> = flowOf(emptyList())
         override fun contact(personId: Long): Flow<ContactDetails?> = if (personId == 7L) details else flowOf(null)
         override fun company(companyId: Long): Flow<CompanyDetails?> = flowOf(null)
+        override fun allContacts(): Flow<List<ContactSummary>> = flowOf(emptyList())
+        override fun companies(): Flow<List<com.wizytowki.data.CompanySummary>> = flowOf(emptyList())
     }
 
     private val split = mutableListOf<Pair<Long, ContactDraft>>()
