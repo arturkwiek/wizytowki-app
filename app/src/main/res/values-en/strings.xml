@@ -46,6 +46,13 @@
     <string name="preview_dictate">Dictate comment</string>
     <string name="preview_dictation_language">Dictation language:</string>
     <string name="preview_dictation_unavailable">Dictation is not available on this phone. Type the comment instead.</string>
+    <string name="meeting_scanned_at">Scanned: %1$s</string>
+    <string name="meeting_event">Event (optional)</string>
+    <string name="meeting_location">Place</string>
+    <string name="meeting_add_location">Add place</string>
+    <string name="meeting_remove_location">Remove</string>
+    <string name="meeting_location_purpose">The approximate place where you met the contact is stored only on this phone. The first time, the app asks for access to location.</string>
+    <string name="meeting_location_unavailable">Could not determine the place. Check that location is on and the app may use it.</string>
     <string name="preview_conflict">Different value on the other side: %1$s</string>
 
     <!-- Fields -->

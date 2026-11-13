@@ -4,8 +4,12 @@
 
     <!--
         Brak uprawnienia CAMERA: ML Kit Document Scanner robi zdjęcia w procesie Google Play services
-        (decyzja w PR #82). RECORD_AUDIO i lokalizacja – w etapie 3, z wyjaśnieniem celu (WNF-04).
+        (decyzja w PR #82). Brak RECORD_AUDIO: dyktowanie przez systemowe RecognizerIntent (PR #103).
     -->
+
+    <!-- Opcjonalne miejsce poznania kontaktu (WF-24): przybliżona lokalizacja, prośba dopiero po
+         dotknięciu „Dodaj miejsce” i z wyjaśnieniem celu (WNF-04). Bez dokładnej lokalizacji. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- Backup wyłączony: baza jest szyfrowana kluczem z Android Keystore, który nie przenosi się
          na inne urządzenie, a dane kontaktowe nie powinny trafiać do chmury (eksport ręczny – Etap 5). -->

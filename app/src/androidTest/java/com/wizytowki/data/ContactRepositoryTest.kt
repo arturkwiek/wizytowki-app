@@ -129,4 +129,12 @@ class ContactRepositoryTest {
 
         assertEquals("Targi Poznań\n\nOferta wysłana", db.personDao().getPersonById(id).first()!!.comment)
     }
+
+    @Test
+    fun eventAndPlaceAreStoredWithTheCard() = runBlocking {
+        val id = repository.saveNew(ContactDraft(firstName = "Ola"), ScanRecord(photo("e1.jpg"), null, "", "Targi Infosystem", "52.40640, 16.92520"))
+        val card = db.businessCardDao().getCardsByPerson(id).first().single()
+        assertEquals("Targi Infosystem", card.event)
+        assertEquals("52.40640, 16.92520", card.location)
+    }
 }
