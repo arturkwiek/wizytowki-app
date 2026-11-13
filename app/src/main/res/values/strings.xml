@@ -102,7 +102,9 @@
     <string name="contact_email">E-mail</string>
     <string name="contact_map">Mapa</string>
     <string name="contact_comment">Komentarze</string>
-    <string name="contact_cards_summary">Wizytówki: %1$d, ostatnia: %2$s</string>
+    <string name="contact_history">Historia zatrudnienia</string>
+    <string name="contact_job_now">obecnie</string>
+    <string name="contact_cards">Wizytówki (%1$d)</string>
     <string name="company_missing">Ta firma nie istnieje (mogła zostać usunięta).</string>
     <string name="company_no_name">Firma bez nazwy</string>
     <string name="company_address_pl">Adres (PL)</string>
