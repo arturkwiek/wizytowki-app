@@ -8,15 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,22 +20,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.wizytowki.R
-import com.wizytowki.domain.MergedCard
-import com.wizytowki.domain.MergedField
-import com.wizytowki.extract.EntityType
-import com.wizytowki.extract.Side
 import com.wizytowki.ocr.Language
 import com.wizytowki.ocr.OcrBlock
 import com.wizytowki.ocr.OcrPage
 
 /**
- * Screen 4 "Podgląd" – Etap 2: recognized text of both sides with fragment languages and the analysis time.
- * [onScanNext] starts the next card; saving the contact before it arrives in Etap 3.
+ * Screen 4 "Podgląd" (REQUIREMENTS 8a): thumbnails of the scanned sides, the recognized contact
+ * as an editable form (WF-20) and saving with duplicate check (#98). The raw OCR text of both
+ * sides with fragment languages stays below for reference. [onScanNext] appears after saving.
  */
 @Composable
 fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
@@ -66,6 +58,7 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
                 ScanNextButton(onScanNext)
             }
             is PreviewUiState.Ready -> {
+                CardThumbnails(s.photos)
                 Text(
                     stringResource(R.string.preview_ocr_time, s.ocr.durationMs),
                     style = MaterialTheme.typography.bodySmall,
@@ -74,7 +67,7 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
                 if (review != null) {
                     DuplicateReviewSection(review, s.save, viewModel)
                 } else {
-                    if (s.card.fields.isNotEmpty()) FieldList(s.card)
+                    ContactForm(s.draft, s.card, s.lowConfidence, s.editable, viewModel::edit)
                     SaveSection(s.save, viewModel::save)
                     // Next card only once this one is stored (owner's request, #98).
                     if (s.save == SaveState.SAVED || s.save == SaveState.UPDATED) ScanNextButton(onScanNext)
@@ -86,7 +79,6 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
     }
 }
 
-/** Saving the card as a contact (#98); editing fields before saving arrives in Etap 3. */
 @Composable
 private fun SaveSection(save: SaveState, onSave: () -> Unit) {
     when (save) {
@@ -114,6 +106,7 @@ private fun ScanNextButton(onClick: () -> Unit) {
     }
 }
 
+/** Raw OCR text of one side with fragment languages (WF-10, WF-11). */
 @Composable
 private fun SideText(@StringRes label: Int, page: OcrPage) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -144,79 +137,4 @@ private fun Fragment(block: OcrBlock) {
 @Composable
 private fun LanguageTag(code: String) {
     Text(code, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-}
-
-/**
- * Fields of the merged record (WF-14): source side(s), PL/EN version and conflicting values
- * from the other side (WF-15). Editing and choosing a conflict value arrive in Etap 3.
- */
-@Composable
-private fun FieldList(card: MergedCard) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.preview_found_data), style = MaterialTheme.typography.titleMedium)
-            card.fields.forEach { field -> Field(field) }
-        }
-    }
-}
-
-@Composable
-private fun Field(field: MergedField) {
-    Column {
-        val sides = field.sides.sorted().map {
-            stringResource(if (it == Side.FRONT) R.string.preview_side_front else R.string.preview_side_back)
-        }
-        val language = when (field.language) {
-            Language.PL -> " · PL"
-            Language.EN -> " · EN"
-            else -> ""
-        }
-        Text(
-            "${stringResource(field.type.label())}$language · ${sides.joinToString(" + ")}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        SelectionContainer { Text(field.value, style = MaterialTheme.typography.bodyLarge) }
-        if (field.lowConfidence) LowConfidenceNote()
-        if (field.conflict) {
-            Text(
-                stringResource(R.string.preview_conflict, field.alternatives.filter { it.side !in field.sides }.joinToString(" / ") { it.value }),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
-    }
-}
-
-/** Low-confidence mark (WF-22): icon and text, not color alone (UI-06). */
-@Composable
-private fun LowConfidenceNote() {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            Icons.Outlined.WarningAmber,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            stringResource(R.string.preview_low_confidence),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.tertiary,
-        )
-    }
-}
-
-@StringRes
-private fun EntityType.label() = when (this) {
-    EntityType.FIRST_NAME -> R.string.field_first_name
-    EntityType.LAST_NAME -> R.string.field_last_name
-    EntityType.POSITION -> R.string.field_position
-    EntityType.DEPARTMENT -> R.string.field_department
-    EntityType.COMPANY -> R.string.field_company
-    EntityType.NIP -> R.string.field_nip
-    EntityType.PHONE -> R.string.field_phone
-    EntityType.EMAIL -> R.string.field_email
-    EntityType.WEBSITE -> R.string.field_website
-    EntityType.SOCIAL -> R.string.field_social
-    EntityType.ADDRESS -> R.string.field_address
 }

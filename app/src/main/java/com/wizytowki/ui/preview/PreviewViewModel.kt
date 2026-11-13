@@ -42,7 +42,21 @@ sealed interface PreviewUiState {
         val card: MergedCard = CardMerger.merge(entities),
         val save: SaveState = SaveState.IDLE,
         val review: DuplicateReview? = null,
-    ) : PreviewUiState
+        /** The contact as the user edits it before saving (WF-20); starts from the recognized [card]. */
+        val draft: ContactDraft = ContactDraft.from(card),
+        /** Photo URIs of the scanned sides, for the thumbnails (WF-20). */
+        val photos: List<String> = emptyList(),
+    ) : PreviewUiState {
+        /** Fields whose recognized value is uncertain (WF-22); an edited value is no longer marked. */
+        val lowConfidence: Set<ContactField>
+            get() = ContactField.entries.filterTo(mutableSetOf()) { field ->
+                ContactComparison.values(draft, field).any { value ->
+                    card.all(field.type).any { it.lowConfidence && it.value == value }
+                }
+            }
+
+        val editable: Boolean get() = save != SaveState.SAVED && save != SaveState.UPDATED && save != SaveState.SAVING
+    }
 }
 
 enum class SaveState { IDLE, SAVING, SAVED, UPDATED, FAILED }
@@ -89,7 +103,10 @@ class PreviewViewModel @Inject constructor(
      * instead ([PreviewUiState.Ready.review]); otherwise saves a new contact and ends the scan.
      */
     fun save() = persist { ready, scan ->
-        val new = ContactDraft.from(ready.card)
+        val new = ready.draft.cleaned().let { c ->
+            // Phones typed by hand are stored like recognized ones, so duplicates still match (WF-13, WF-32).
+            c.copy(phones = c.phones.map { entityExtractor.normalizePhone(it) ?: it }.distinct())
+        }
         val match = DuplicateFinder.find(new, contacts.savedContacts())
         if (match != null) {
             ready.copy(save = SaveState.IDLE, review = DuplicateReview(match, new))
@@ -97,6 +114,13 @@ class PreviewViewModel @Inject constructor(
             contacts.saveNew(new, scan)
             finished(ready, SaveState.SAVED)
         }
+    }
+
+    /** The user's edit of one field before saving (WF-20); for lists, all its entries. */
+    fun edit(field: ContactField, values: List<String>) {
+        val ready = _state.value as? PreviewUiState.Ready ?: return
+        if (!ready.editable || ready.review != null) return
+        _state.value = ready.copy(draft = with(ContactComparison) { ready.draft.with(field, values) })
     }
 
     /** Choice for one field of the comparison. */
@@ -162,7 +186,7 @@ class PreviewViewModel @Inject constructor(
             }
             _state.value = try {
                 val ocr = cardRecognizer.recognize(front, session.backUri)
-                PreviewUiState.Ready(ocr, entityExtractor.extract(ocr))
+                PreviewUiState.Ready(ocr, entityExtractor.extract(ocr), photos = listOfNotNull(front, session.backUri))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

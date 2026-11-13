@@ -29,6 +29,24 @@ data class ContactDraft(
         get() = listOf(company, nip, addressPl, addressEn, positionPl, positionEn, departmentPl, departmentEn)
             .any { it.isNotBlank() }
 
+    /** Trimmed values without empty list entries, as saved after editing (WF-20). */
+    fun cleaned(): ContactDraft = copy(
+        firstName = firstName.trim(),
+        lastName = lastName.trim(),
+        phones = phones.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+        emails = emails.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+        websites = websites.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+        social = social.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+        company = company.trim(),
+        nip = nip.trim(),
+        positionPl = positionPl.trim(),
+        positionEn = positionEn.trim(),
+        departmentPl = departmentPl.trim(),
+        departmentEn = departmentEn.trim(),
+        addressPl = addressPl.trim(),
+        addressEn = addressEn.trim(),
+    )
+
     companion object {
         /**
          * The recognized card as a contact. A value of unknown language goes to the free version,
