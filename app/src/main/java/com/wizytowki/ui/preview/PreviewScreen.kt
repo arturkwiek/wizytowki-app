@@ -70,9 +70,15 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
                     stringResource(R.string.preview_ocr_time, s.ocr.durationMs),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                if (s.card.fields.isNotEmpty()) FieldList(s.card)
-                SaveSection(s.save, viewModel::save)
-                ScanNextButton(onScanNext)
+                val review = s.review
+                if (review != null) {
+                    DuplicateReviewSection(review, s.save, viewModel)
+                } else {
+                    if (s.card.fields.isNotEmpty()) FieldList(s.card)
+                    SaveSection(s.save, viewModel::save)
+                    // Next card only once this one is stored (owner's request, #98).
+                    if (s.save == SaveState.SAVED || s.save == SaveState.UPDATED) ScanNextButton(onScanNext)
+                }
                 SideText(R.string.preview_side_front, s.ocr.front)
                 s.ocr.back?.let { SideText(R.string.preview_side_back, it) }
             }
@@ -84,8 +90,8 @@ fun PreviewScreen(viewModel: PreviewViewModel, onScanNext: () -> Unit) {
 @Composable
 private fun SaveSection(save: SaveState, onSave: () -> Unit) {
     when (save) {
-        SaveState.SAVED -> Text(
-            stringResource(R.string.saved_successfully),
+        SaveState.SAVED, SaveState.UPDATED -> Text(
+            stringResource(if (save == SaveState.SAVED) R.string.saved_successfully else R.string.duplicate_updated),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
         )
