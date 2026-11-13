@@ -3,6 +3,8 @@ package com.wizytowki.ui.preview
 import com.wizytowki.data.ContactRepository
 import com.wizytowki.data.ScanRecord
 import com.wizytowki.domain.ContactDraft
+import com.wizytowki.domain.Choice
+import com.wizytowki.domain.MatchReason
 import com.wizytowki.domain.SavedContact
 import com.wizytowki.extract.EntityExtractor
 import com.wizytowki.extract.EntityType
@@ -45,7 +47,14 @@ private class FakeContacts(var fail: Boolean = false) : ContactRepository {
         return saved.size.toLong()
     }
 
-    override suspend fun savedContacts(): List<SavedContact> = emptyList()
+    var existing: List<SavedContact> = emptyList()
+    val updated = mutableListOf<Pair<SavedContact, ContactDraft>>()
+
+    override suspend fun savedContacts(): List<SavedContact> = existing
+
+    override suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord) {
+        updated += saved to contact
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -118,5 +127,50 @@ class PreviewViewModelTest {
         val (contact, scan) = contacts.saved.single()
         assertEquals(listOf("+48600100200"), contact.phones)
         assertEquals(ScanRecord("f", "b", (vm.state.value as PreviewUiState.Ready).ocr.rawText), scan)
+    }
+
+    private fun duplicateVm(): PreviewViewModel {
+        contacts.existing = listOf(SavedContact(7, null, ContactDraft(firstName = "Jan", phones = listOf("+48600100200"))))
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor(), contacts)
+        vm.save()
+        return vm
+    }
+
+    private val PreviewViewModel.ready get() = state.value as PreviewUiState.Ready
+
+    @Test
+    fun `same phone shows the comparison instead of saving`() {
+        val vm = duplicateVm()
+
+        val review = vm.ready.review!!
+        assertEquals(setOf(MatchReason.PHONE), review.match.reasons)
+        assertTrue(contacts.saved.isEmpty())
+        assertEquals(SaveState.IDLE, vm.ready.save)
+    }
+
+    @Test
+    fun `chosen fields update the saved contact`() {
+        val vm = duplicateVm()
+
+        vm.chooseAll(Choice.SAVED)
+        vm.confirmUpdate()
+
+        val (saved, result) = contacts.updated.single()
+        assertEquals(7L, saved.personId)
+        assertEquals(saved.contact, result)
+        assertEquals(SaveState.UPDATED, vm.ready.save)
+        assertNull(vm.ready.review)
+    }
+
+    @Test
+    fun `separate contact or cancel`() {
+        val vm = duplicateVm()
+        vm.cancelReview()
+        assertNull(vm.ready.review)
+
+        vm.save()
+        vm.saveAsNew()
+        assertEquals(1, contacts.saved.size)
+        assertEquals(SaveState.SAVED, vm.ready.save)
     }
 }

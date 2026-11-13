@@ -10,6 +10,7 @@ import com.wizytowki.data.db.entities.EmploymentHistoryEntity
 import com.wizytowki.data.db.entities.PersonEntity
 import com.wizytowki.domain.ContactDraft
 import com.wizytowki.domain.SavedContact
+import com.wizytowki.domain.fold
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -29,6 +30,12 @@ interface ContactRepository {
 
     /** All saved people with their current company and position, for finding duplicates (WF-32). */
     suspend fun savedContacts(): List<SavedContact>
+
+    /**
+     * Updates a saved person with the merged [contact] and adds the scan to their cards (WF-32, WF-34).
+     * A different company ends the current job and starts a new one, keeping the history.
+     */
+    suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord)
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -58,9 +65,7 @@ class RoomContactRepository @Inject constructor(
 ) : ContactRepository {
 
     override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): Long {
-        val stamp = System.currentTimeMillis()
-        val front = photos.keep(scan.frontUri, "card_${stamp}_front")
-        val back = scan.backUri?.let { photos.keep(it, "card_${stamp}_back") }.orEmpty()
+        val card = keepPhotos(scan)
         val now = LocalDateTime.now()
         return db.withTransaction {
             val companyId = if (contact.hasCompanyData) db.companyDao().insert(contact.toCompany(now)) else null
@@ -68,11 +73,49 @@ class RoomContactRepository @Inject constructor(
             if (companyId != null) {
                 db.employmentHistoryDao().insert(contact.toEmployment(personId, companyId, now))
             }
-            db.businessCardDao().insert(
-                BusinessCardEntity(personId = personId, frontPhotoPath = front, backPhotoPath = back, rawOcrText = scan.rawText, scannedAt = now),
-            )
+            db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
             personId
         }
+    }
+
+    override suspend fun update(saved: SavedContact, contact: ContactDraft, scan: ScanRecord) {
+        val card = keepPhotos(scan)
+        val now = LocalDateTime.now()
+        db.withTransaction {
+            val personId = saved.personId
+            val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
+            val company = saved.companyId?.let { db.companyDao().getCompanyById(it).first() }
+            val jobs = db.employmentHistoryDao().getHistoryByPerson(personId).first()
+            val sameCompany = company != null && fold(company.name) == fold(contact.company)
+
+            val companyId = when {
+                sameCompany -> {
+                    val updated = contact.toCompany(now)
+                    db.companyDao().update(updated.copy(id = company!!.id, createdAt = company.createdAt))
+                    jobs.firstOrNull { it.isCurrent && it.companyId == company.id }?.let { job ->
+                        db.employmentHistoryDao().update(contact.toEmployment(personId, company.id, now).copy(id = job.id, dateFrom = job.dateFrom))
+                    } ?: db.employmentHistoryDao().insert(contact.toEmployment(personId, company.id, now))
+                    company.id
+                }
+                contact.hasCompanyData -> {
+                    // New employer: the previous job stays in the history (WF-34).
+                    jobs.filter { it.isCurrent }.forEach { db.employmentHistoryDao().update(it.copy(isCurrent = false, dateTo = now)) }
+                    val id = db.companyDao().insert(contact.toCompany(now))
+                    db.employmentHistoryDao().insert(contact.toEmployment(personId, id, now))
+                    id
+                }
+                else -> person.currentCompanyId
+            }
+            db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = person.comment, createdAt = person.createdAt))
+            db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
+        }
+    }
+
+    private suspend fun keepPhotos(scan: ScanRecord): BusinessCardEntity {
+        val stamp = System.currentTimeMillis()
+        val front = photos.keep(scan.frontUri, "card_${stamp}_front")
+        val back = scan.backUri?.let { photos.keep(it, "card_${stamp}_back") }.orEmpty()
+        return BusinessCardEntity(personId = 0, frontPhotoPath = front, backPhotoPath = back, rawOcrText = scan.rawText)
     }
 
     override suspend fun savedContacts(): List<SavedContact> = db.withTransaction {

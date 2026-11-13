@@ -81,6 +81,38 @@ class ContactRepositoryTest {
     }
 
     @Test
+    fun updateKeepsPersonAndAddsTheCard() = runBlocking {
+        val first = ContactDraft(firstName = "Jan", lastName = "Kowalski", phones = listOf("+48600100200"), company = "ACME S.A.", positionPl = "Kierownik")
+        val id = repository.saveNew(first, ScanRecord(photo("u1.jpg"), null, "1"))
+        val saved = repository.savedContacts().single()
+
+        val merged = first.copy(phones = listOf("+48600100200", "+48221234567"), company = "ACME s.a.", positionPl = "Dyrektor")
+        repository.update(saved, merged, ScanRecord(photo("u2.jpg"), null, "2"))
+
+        val after = repository.savedContacts().single()
+        assertEquals(id, after.personId)
+        assertEquals(saved.companyId, after.companyId)
+        assertEquals(merged, after.contact)
+        assertEquals(2, db.businessCardDao().getCardsByPerson(id).first().size)
+        assertEquals(1, db.employmentHistoryDao().getHistoryByPerson(id).first().size)
+    }
+
+    @Test
+    fun newCompanyEndsThePreviousJob() = runBlocking {
+        val first = ContactDraft(firstName = "Anna", lastName = "Nowak", company = "Stara Firma Sp. z o.o.", positionPl = "Analityk")
+        val id = repository.saveNew(first, ScanRecord(photo("j1.jpg"), null, ""))
+        val saved = repository.savedContacts().single()
+
+        repository.update(saved, first.copy(company = "Nowa Firma S.A.", positionPl = "Kierownik"), ScanRecord(photo("j2.jpg"), null, ""))
+
+        val jobs = db.employmentHistoryDao().getHistoryByPerson(id).first()
+        assertEquals(2, jobs.size)
+        assertEquals("Analityk", jobs.single { !it.isCurrent }.positionPl)
+        assertEquals("Kierownik", jobs.single { it.isCurrent }.positionPl)
+        assertEquals("Nowa Firma S.A.", repository.savedContacts().single().contact.company)
+    }
+
+    @Test
     fun personWithoutCompanyAndBack() = runBlocking {
         val id = repository.saveNew(ContactDraft(firstName = "Anna", phones = listOf("+48600100200")), ScanRecord(photo("f2.jpg"), null, ""))
 
