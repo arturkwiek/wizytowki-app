@@ -2,6 +2,7 @@ package com.wizytowki.data
 
 import com.wizytowki.data.db.WizytowkiDatabase
 import com.wizytowki.data.db.entities.BusinessCardEntity
+import com.wizytowki.data.db.entities.CompanyEntity
 import com.wizytowki.domain.ContactDraft
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -26,11 +27,16 @@ data class ContactDetails(
     val cards: List<BusinessCardEntity>,
 )
 
+/** Everything the company card shows (REQUIREMENTS 8a, screen 8): the company and its people. */
+data class CompanyDetails(val company: CompanyEntity, val people: List<ContactSummary>)
+
 /** Reading saved contacts for the screens; saving goes through [ContactRepository]. */
 interface ContactQueries {
     fun recentContacts(limit: Int = 20): Flow<List<ContactSummary>>
 
     fun contact(personId: Long): Flow<ContactDetails?>
+
+    fun company(companyId: Long): Flow<CompanyDetails?>
 }
 
 class RoomContactQueries @Inject constructor(private val db: WizytowkiDatabase) : ContactQueries {
@@ -64,5 +70,21 @@ class RoomContactQueries @Inject constructor(private val db: WizytowkiDatabase) 
         val company = person.currentCompanyId?.let { id -> companies.firstOrNull { it.id == id } }
         val job = jobs.firstOrNull { it.isCurrent }
         ContactDetails(person.id, company?.id, contactOf(person, company, job).copy(comment = person.comment), cards)
+    }
+
+    override fun company(companyId: Long): Flow<CompanyDetails?> = combine(
+        db.companyDao().getCompanyById(companyId),
+        db.personDao().personsOfCompany(companyId),
+        db.employmentHistoryDao().currentJobs(),
+    ) { company, persons, jobs ->
+        company ?: return@combine null
+        val jobByPerson = jobs.associateBy { it.personId }
+        CompanyDetails(
+            company,
+            persons.map { person ->
+                val job = jobByPerson[person.id]
+                ContactSummary(person.id, person.firstName, person.lastName, company.name, job?.positionPl?.ifBlank { job.positionEn }.orEmpty())
+            },
+        )
     }
 }

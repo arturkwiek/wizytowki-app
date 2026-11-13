@@ -28,6 +28,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wizytowki.ui.home.DraftCard
+import com.wizytowki.ui.contact.CompanyDetailScreen
+import com.wizytowki.ui.contact.CompanyDetailViewModel
 import com.wizytowki.ui.contact.ContactDetailScreen
 import com.wizytowki.ui.contact.ContactDetailViewModel
 import com.wizytowki.ui.home.HomeScreen
@@ -117,7 +119,16 @@ fun WizytowkiNavigation() {
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Routes.COMPANY_DETAIL) { PlaceholderScreen(navController, R.string.screen_company_detail) }
+        composable(
+            Routes.COMPANY_DETAIL,
+            arguments = listOf(navArgument(CompanyDetailViewModel.ARG_ID) { type = NavType.LongType }),
+        ) {
+            CompanyDetailScreen(
+                viewModel = hiltViewModel(),
+                onOpenContact = { navController.navigate(Routes.contactDetail(it)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
         composable(Routes.SETTINGS) { PlaceholderScreen(navController, R.string.nav_settings) }
     }
 }
