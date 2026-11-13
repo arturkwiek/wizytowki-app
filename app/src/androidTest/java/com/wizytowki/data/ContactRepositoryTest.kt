@@ -168,4 +168,41 @@ class ContactRepositoryTest {
         assertEquals(listOf("Analityk"), db.employmentHistoryDao().getHistoryByPerson(id).first().map { it.positionPl })
         assertEquals(1, db.companyDao().getAllCompanies().first().size)
     }
+
+    @Test
+    fun peopleOfOneCompanyShareItsRecord() = runBlocking {
+        val first = repository.saveNew(
+            ContactDraft(firstName = "Jan", lastName = "Kowalski", emails = listOf("jan@acme.pl"), company = "ACME Sp. z o.o.", positionPl = "Prezes"),
+            ScanRecord(photo("k1.jpg"), null, ""),
+        )
+        val second = repository.saveNew(
+            ContactDraft(firstName = "Anna", lastName = "Nowak", emails = listOf("anna@acme.pl"), company = "Acme sp. z o. o.", nip = "5260250995", positionPl = "Księgowa"),
+            ScanRecord(photo("k2.jpg"), null, ""),
+        )
+
+        val companies = db.companyDao().getAllCompanies().first()
+        assertEquals(1, companies.size)
+        assertEquals("ACME Sp. z o.o.", companies.single().name)
+        assertEquals("5260250995", companies.single().nip)
+        assertEquals(setOf(companies.single().id), repository.savedContacts().map { it.companyId }.toSet())
+
+        // Undo of the second person keeps the shared company, without the NIP it brought.
+        repository.undo(second)
+        assertEquals("", db.companyDao().getAllCompanies().first().single().nip)
+        assertEquals(first.personId, repository.savedContacts().single().personId)
+    }
+
+    @Test
+    fun movingToAKnownCompanyLinksIt() = runBlocking {
+        repository.saveNew(ContactDraft(firstName = "Jan", lastName = "Kowalski", company = "Nowa Firma S.A."), ScanRecord(photo("m1.jpg"), null, ""))
+        val anna = ContactDraft(firstName = "Anna", lastName = "Nowak", company = "Stara Firma Sp. z o.o.")
+        val id = repository.saveNew(anna, ScanRecord(photo("m2.jpg"), null, "")).personId
+        val saved = repository.savedContacts().single { it.personId == id }
+
+        repository.update(saved, anna.copy(company = "NOWA FIRMA SA"), ScanRecord(photo("m3.jpg"), null, ""))
+
+        assertEquals(2, db.companyDao().getAllCompanies().first().size)
+        val jan = repository.savedContacts().single { it.personId != id }
+        assertEquals(jan.companyId, repository.savedContacts().single { it.personId == id }.companyId)
+    }
 }

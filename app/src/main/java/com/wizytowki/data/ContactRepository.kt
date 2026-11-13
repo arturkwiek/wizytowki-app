@@ -9,8 +9,9 @@ import com.wizytowki.data.db.entities.CompanyEntity
 import com.wizytowki.data.db.entities.EmploymentHistoryEntity
 import com.wizytowki.data.db.entities.PersonEntity
 import com.wizytowki.domain.ContactDraft
+import com.wizytowki.domain.CompanyMatcher
+import com.wizytowki.domain.SavedCompany
 import com.wizytowki.domain.SavedContact
-import com.wizytowki.domain.fold
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -41,12 +42,16 @@ sealed interface SavedChange {
     val cardId: Long
     val cardPhotos: List<String>
 
-    /** A new person, with the company created for them, if any. */
+    /**
+     * A new person, with the company created for them ([companyId]) or the existing company they
+     * were linked to, as it was before its empty fields were filled in ([linkedCompanyBefore]).
+     */
     data class Created(
         override val personId: Long,
         override val cardId: Long,
         override val cardPhotos: List<String>,
         val companyId: Long?,
+        val linkedCompanyBefore: CompanyEntity? = null,
     ) : SavedChange
 
     /** An existing person updated: their records as they were before. */
@@ -59,6 +64,8 @@ sealed interface SavedChange {
         val jobsBefore: List<EmploymentHistoryEntity>,
         /** Company created by this update (new employer), deleted on undo. */
         val createdCompanyId: Long?,
+        /** Existing company the person moved to, as it was before its empty fields were filled in. */
+        val linkedCompanyBefore: CompanyEntity? = null,
     ) : SavedChange
 }
 
@@ -110,13 +117,14 @@ class RoomContactRepository @Inject constructor(
         val card = keepPhotos(scan)
         val now = LocalDateTime.now()
         return db.withTransaction {
-            val companyId = if (contact.hasCompanyData) db.companyDao().insert(contact.toCompany(now)) else null
+            val company = if (contact.hasCompanyData) linkCompany(contact, now) else null
+            val companyId = company?.id
             val personId = db.personDao().insert(contact.toPerson(companyId, now))
             if (companyId != null) {
                 db.employmentHistoryDao().insert(contact.toEmployment(personId, companyId, now))
             }
             val cardId = db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
-            SavedChange.Created(personId, cardId, card.photos(), companyId)
+            SavedChange.Created(personId, cardId, card.photos(), companyId.takeIf { company?.created == true }, company?.before)
         }
     }
 
@@ -128,8 +136,11 @@ class RoomContactRepository @Inject constructor(
             val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
             val company = saved.companyId?.let { db.companyDao().getCompanyById(it).first() }
             val jobs = db.employmentHistoryDao().getHistoryByPerson(personId).first()
-            val sameCompany = company != null && fold(company.name) == fold(contact.company)
+            // A company record without a name (only position on the card) stays the same company.
+            val sameCompany = company != null &&
+                (CompanyMatcher.matches(contact, company.toSaved()) || company.name.isBlank() && contact.company.isBlank())
             var createdCompanyId: Long? = null
+            var linkedCompanyBefore: CompanyEntity? = null
 
             val companyId = when {
                 sameCompany -> {
@@ -143,10 +154,10 @@ class RoomContactRepository @Inject constructor(
                 contact.hasCompanyData -> {
                     // New employer: the previous job stays in the history (WF-34).
                     jobs.filter { it.isCurrent }.forEach { db.employmentHistoryDao().update(it.copy(isCurrent = false, dateTo = now)) }
-                    val id = db.companyDao().insert(contact.toCompany(now))
-                    createdCompanyId = id
-                    db.employmentHistoryDao().insert(contact.toEmployment(personId, id, now))
-                    id
+                    val link = linkCompany(contact, now)
+                    if (link.created) createdCompanyId = link.id else linkedCompanyBefore = link.before
+                    db.employmentHistoryDao().insert(contact.toEmployment(personId, link.id, now))
+                    link.id
                 }
                 else -> person.currentCompanyId
             }
@@ -154,7 +165,7 @@ class RoomContactRepository @Inject constructor(
             val comment = listOf(person.comment, contact.comment).filter { it.isNotBlank() }.distinct().joinToString("\n\n")
             db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = comment, createdAt = person.createdAt))
             val cardId = db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
-            SavedChange.Updated(personId, cardId, card.photos(), person, company, jobs, createdCompanyId)
+            SavedChange.Updated(personId, cardId, card.photos(), person, company, jobs, createdCompanyId, linkedCompanyBefore)
         }
     }
 
@@ -167,6 +178,7 @@ class RoomContactRepository @Inject constructor(
                     jobs.getHistoryByPerson(change.personId).first().forEach { jobs.delete(it.id) }
                     db.personDao().delete(change.personId)
                     change.companyId?.let { db.companyDao().delete(it) }
+                    change.linkedCompanyBefore?.let { db.companyDao().update(it) }
                 }
                 is SavedChange.Updated -> {
                     db.businessCardDao().delete(change.cardId)
@@ -174,11 +186,27 @@ class RoomContactRepository @Inject constructor(
                     change.jobsBefore.forEach { jobs.insert(it) }
                     change.companyBefore?.let { db.companyDao().update(it) }
                     change.createdCompanyId?.let { db.companyDao().delete(it) }
+                    change.linkedCompanyBefore?.let { db.companyDao().update(it) }
                     db.personDao().update(change.personBefore)
                 }
             }
         }
         withContext(Dispatchers.IO) { change.cardPhotos.forEach { File(it).delete() } }
+    }
+
+    private class CompanyLink(val id: Long, val created: Boolean, val before: CompanyEntity?)
+
+    /**
+     * The company of a saved contact (WF-31, WF-33): an existing one when [CompanyMatcher] finds it –
+     * only its empty fields are filled in, as other people share it – otherwise a new one.
+     */
+    private suspend fun linkCompany(contact: ContactDraft, now: LocalDateTime): CompanyLink {
+        val all = db.companyDao().getAllCompanies().first()
+        val match = CompanyMatcher.find(contact, all.map { it.toSaved() })?.let { m -> all.first { it.id == m.id } }
+            ?: return CompanyLink(db.companyDao().insert(contact.toCompany(now)), created = true, before = null)
+        val filled = match.fillBlanks(contact.toCompany(now))
+        if (filled != match) db.companyDao().update(filled.copy(updatedAt = now))
+        return CompanyLink(match.id, created = false, before = match)
     }
 
     private fun BusinessCardEntity.photos() = listOf(frontPhotoPath, backPhotoPath).filter { it.isNotEmpty() }
@@ -235,6 +263,18 @@ internal fun ContactDraft.toPerson(companyId: Long?, now: LocalDateTime) = Perso
     currentCompanyId = companyId,
     createdAt = now,
     updatedAt = now,
+)
+
+internal fun CompanyEntity.toSaved() = SavedCompany(id, name, nip, website, emailDomain)
+
+/** Fills only the empty fields of a shared company record with new data. */
+internal fun CompanyEntity.fillBlanks(new: CompanyEntity) = copy(
+    name = name.ifBlank { new.name },
+    nip = nip.ifBlank { new.nip },
+    website = website.ifBlank { new.website },
+    emailDomain = emailDomain.ifBlank { new.emailDomain },
+    addressPl = addressPl.ifBlank { new.addressPl },
+    addressEn = addressEn.ifBlank { new.addressEn },
 )
 
 internal fun ContactDraft.toCompany(now: LocalDateTime) = CompanyEntity(
