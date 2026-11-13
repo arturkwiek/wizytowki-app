@@ -1,6 +1,7 @@
 package com.wizytowki.ui.contact
 
 import androidx.lifecycle.SavedStateHandle
+import com.wizytowki.data.CompanyDetails
 import com.wizytowki.data.ContactDetails
 import com.wizytowki.data.ContactQueries
 import com.wizytowki.data.ContactSummary
@@ -27,6 +28,7 @@ class ContactDetailViewModelTest {
     private val queries = object : ContactQueries {
         override fun recentContacts(limit: Int): Flow<List<ContactSummary>> = flowOf(emptyList())
         override fun contact(personId: Long): Flow<ContactDetails?> = if (personId == 7L) details else flowOf(null)
+        override fun company(companyId: Long): Flow<CompanyDetails?> = flowOf(null)
     }
 
     @Before

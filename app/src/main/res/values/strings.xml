@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="pl">
     <string name="app_name">Wizytówki</string>
 
     <!-- Navigation and screens -->
@@ -79,7 +79,6 @@
     <string name="permission_required">Wymagane uprawnienie: %s</string>
 
     <!-- Placeholder screens (Etap 0) -->
-    <string name="screen_company_detail">Karta firmy</string>
     <string name="screen_duplicate">Duplikat</string>
     <string name="duplicate_title">Ta osoba jest już zapisana</string>
     <string name="duplicate_reasons">Zgadza się: %1$s</string>
@@ -104,6 +103,11 @@
     <string name="contact_map">Mapa</string>
     <string name="contact_comment">Komentarze</string>
     <string name="contact_cards_summary">Wizytówki: %1$d, ostatnia: %2$s</string>
+    <string name="company_missing">Ta firma nie istnieje (mogła zostać usunięta).</string>
+    <string name="company_no_name">Firma bez nazwy</string>
+    <string name="company_address_pl">Adres (PL)</string>
+    <string name="company_address_en">Adres (EN)</string>
+    <string name="company_people">Osoby (%1$d)</string>
     <string name="placeholder_note">Ekran w przygotowaniu</string>
 
     <!-- Scanning flow (Etap 1, #8) -->

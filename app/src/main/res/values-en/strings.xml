@@ -79,7 +79,6 @@
     <string name="permission_required">Required permission: %s</string>
 
     <!-- Placeholder screens (Etap 0) -->
-    <string name="screen_company_detail">Company card</string>
     <string name="screen_duplicate">Duplicate</string>
     <string name="duplicate_title">This person is already saved</string>
     <string name="duplicate_reasons">Matching: %1$s</string>
@@ -104,6 +103,11 @@
     <string name="contact_map">Map</string>
     <string name="contact_comment">Comments</string>
     <string name="contact_cards_summary">Cards: %1$d, last: %2$s</string>
+    <string name="company_missing">This company does not exist (it may have been deleted).</string>
+    <string name="company_no_name">Company without a name</string>
+    <string name="company_address_pl">Address (PL)</string>
+    <string name="company_address_en">Address (EN)</string>
+    <string name="company_people">People (%1$d)</string>
     <string name="placeholder_note">Screen under construction</string>
 
     <!-- Scanning flow (Etap 1, #8) -->

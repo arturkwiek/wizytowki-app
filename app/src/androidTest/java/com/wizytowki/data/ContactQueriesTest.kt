@@ -69,4 +69,20 @@ class ContactQueriesTest {
         assertEquals("https://www.acme.pl", QuickActions.web("www.acme.pl").data.toString())
         assertEquals("geo:0,0?q=ul.%20D%C5%82uga%205%2C%2000-001%20Warszawa", QuickActions.map("ul. Długa 5, 00-001 Warszawa").data.toString())
     }
+
+    @Test
+    fun companyCardWithItsPeople() = runBlocking {
+        val jan = repository.saveNew(ContactDraft(firstName = "Jan", lastName = "Kowalski", company = "ACME S.A.", positionPl = "Prezes"), scan("c1.jpg"))
+        repository.saveNew(ContactDraft(firstName = "Anna", lastName = "Nowak", company = "Acme SA", nip = "5260250995"), scan("c2.jpg"))
+        repository.saveNew(ContactDraft(firstName = "Ola", company = "Inna Firma"), scan("c3.jpg"))
+        val companyId = queries.contact(jan.personId).first()!!.companyId!!
+
+        val details = queries.company(companyId).first()!!
+
+        assertEquals("ACME S.A.", details.company.name)
+        assertEquals("5260250995", details.company.nip)
+        assertEquals(listOf("Jan Kowalski", "Anna Nowak").sorted(), details.people.map { it.name }.sorted())
+        assertEquals("Prezes", details.people.single { it.firstName == "Jan" }.position)
+        assertNull(queries.company(999).first())
+    }
 }
