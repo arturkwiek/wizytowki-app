@@ -133,6 +133,9 @@
     <string name="note_title">Add a note</string>
     <string name="note_add">Save note</string>
     <string name="note_failed">Could not save the note.</string>
+    <string name="edit_company_title">Edit company</string>
+    <string name="edit_company_shared">The change applies to everyone in this company (%1$d).</string>
+    <string name="edit_company_bad_nip">This NIP fails the checksum – check the digits.</string>
     <string name="company_missing">This company does not exist (it may have been deleted).</string>
     <string name="company_no_name">Company without a name</string>
     <string name="company_address_pl">Address (PL)</string>

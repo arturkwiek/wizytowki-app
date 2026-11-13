@@ -54,6 +54,7 @@ class EditContactViewModelTest {
             edits += personId to contact
         }
         override suspend fun addNote(personId: Long, note: String) = Unit
+        override suspend fun editCompany(companyId: Long, edit: com.wizytowki.data.CompanyEdit) = Unit
     }
 
     @Before

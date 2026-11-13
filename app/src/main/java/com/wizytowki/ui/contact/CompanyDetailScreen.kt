@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -56,7 +57,7 @@ class CompanyDetailViewModel @Inject constructor(queries: ContactQueries, savedS
 
 /** Company card: name, NIP, website, address and the people linked to it (WF-31). */
 @Composable
-fun CompanyDetailScreen(viewModel: CompanyDetailViewModel, onOpenContact: (Long) -> Unit, onBack: () -> Unit) {
+fun CompanyDetailScreen(viewModel: CompanyDetailViewModel, onOpenContact: (Long) -> Unit, onEdit: (Long) -> Unit, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -65,7 +66,12 @@ fun CompanyDetailScreen(viewModel: CompanyDetailViewModel, onOpenContact: (Long)
         when (val s = state) {
             CompanyDetailState.Loading -> Unit
             CompanyDetailState.Missing -> Text(stringResource(R.string.company_missing), style = MaterialTheme.typography.bodyLarge)
-            is CompanyDetailState.Ready -> CompanyCard(s.details, onOpenContact)
+            is CompanyDetailState.Ready -> {
+                Button(onClick = { onEdit(s.details.company.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.edit_contact_action))
+                }
+                CompanyCard(s.details, onOpenContact)
+            }
         }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(R.string.action_back))
