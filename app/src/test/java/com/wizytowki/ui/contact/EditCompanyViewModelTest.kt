@@ -55,6 +55,8 @@ class EditCompanyViewModelTest {
         override suspend fun editCompany(companyId: Long, edit: CompanyEdit) {
             edits += companyId to edit
         }
+        override suspend fun deletePerson(personId: Long) = Unit
+        override suspend fun deleteCard(cardId: Long) = Unit
     }
 
     @Before

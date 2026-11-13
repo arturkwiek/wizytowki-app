@@ -136,6 +136,12 @@
     <string name="edit_company_title">Edit company</string>
     <string name="edit_company_shared">The change applies to everyone in this company (%1$d).</string>
     <string name="edit_company_bad_nip">This NIP fails the checksum – check the digits.</string>
+    <string name="delete_contact">Delete contact</string>
+    <string name="delete_contact_confirm">Delete this contact with its cards (%1$d) and their photos? This cannot be undone.</string>
+    <string name="delete_card">Delete card</string>
+    <string name="delete_card_confirm">Delete this card and its photos? The contact data stays. This cannot be undone.</string>
+    <string name="delete_confirm">Delete</string>
+    <string name="delete_failed">Could not delete.</string>
     <string name="company_missing">This company does not exist (it may have been deleted).</string>
     <string name="company_no_name">Company without a name</string>
     <string name="company_address_pl">Address (PL)</string>

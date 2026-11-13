@@ -115,6 +115,15 @@ interface ContactRepository {
 
     /** Correction of a company (#115); everyone linked to it sees the change (WF-31). */
     suspend fun editCompany(companyId: Long, edit: CompanyEdit)
+
+    /**
+     * Deletes a person for good (#118): their cards with photos and their job history. The company
+     * stays – other people may share it.
+     */
+    suspend fun deletePerson(personId: Long)
+
+    /** Deletes one scanned card and its photos (#118). */
+    suspend fun deleteCard(cardId: Long)
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -252,6 +261,28 @@ class RoomContactRepository @Inject constructor(
             )
         }
     }
+
+    override suspend fun deletePerson(personId: Long) {
+        val photos = db.withTransaction {
+            val cards = db.businessCardDao().getCardsByPerson(personId).first()
+            cards.forEach { db.businessCardDao().delete(it.id) }
+            db.employmentHistoryDao().getHistoryByPerson(personId).first().forEach { db.employmentHistoryDao().delete(it.id) }
+            db.personDao().delete(personId)
+            cards.flatMap { it.photos() }
+        }
+        deleteFiles(photos)
+    }
+
+    override suspend fun deleteCard(cardId: Long) {
+        val photos = db.withTransaction {
+            val card = db.businessCardDao().getCardById(cardId).first() ?: return@withTransaction emptyList()
+            db.businessCardDao().delete(cardId)
+            card.photos()
+        }
+        deleteFiles(photos)
+    }
+
+    private suspend fun deleteFiles(paths: List<String>) = withContext(Dispatchers.IO) { paths.forEach { File(it).delete() } }
 
     override suspend fun addNote(personId: Long, note: String) {
         val text = note.trim()

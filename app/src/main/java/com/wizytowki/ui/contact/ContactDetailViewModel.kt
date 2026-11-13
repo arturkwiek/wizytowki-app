@@ -103,6 +103,36 @@ class ContactDetailViewModel @Inject constructor(
         }
     }
 
+    private val _deleted = MutableStateFlow(false)
+
+    /** The person was deleted (#118); the screen leaves the card. */
+    val deleted: StateFlow<Boolean> = _deleted.asStateFlow()
+
+    private val _deleteFailed = MutableStateFlow(false)
+    val deleteFailed: StateFlow<Boolean> = _deleteFailed.asStateFlow()
+
+    /** Deletes the person with their cards and photos (#118); confirmed by the user on the card. */
+    fun deletePerson() = runDelete {
+        contacts.deletePerson(personId)
+        _deleted.value = true
+    }
+
+    /** Deletes one card and its photos (#118). */
+    fun deleteCard(card: BusinessCardEntity) = runDelete { contacts.deleteCard(card.id) }
+
+    private fun runDelete(action: suspend () -> Unit) {
+        viewModelScope.launch {
+            _deleteFailed.value = false
+            try {
+                action()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _deleteFailed.value = true
+            }
+        }
+    }
+
     fun movedShown() {
         _movedTo.value = null
     }
