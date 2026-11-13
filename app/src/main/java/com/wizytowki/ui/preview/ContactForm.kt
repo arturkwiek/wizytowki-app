@@ -22,6 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -147,10 +150,16 @@ private fun keyboard(field: ContactField) = when (field) {
 @Composable
 fun CardThumbnails(photos: List<String>) {
     if (photos.isEmpty()) return
+    // Tapping a thumbnail shows the photo on the full screen (#118).
+    var opened by rememberSaveable { mutableStateOf<String?>(null) }
+    opened?.let { PhotoViewer(it) { opened = null } }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         photos.forEachIndexed { i, uri ->
             val bitmap by produceState<Bitmap?>(null, uri) { value = withContext(Dispatchers.IO) { decodeThumbnail(uri) } }
-            Card(modifier = Modifier.weight(1f).height(120.dp)) {
+            Card(
+                onClick = { opened = uri },
+                modifier = Modifier.weight(1f).height(120.dp),
+            ) {
                 bitmap?.let {
                     Image(
                         it.asImageBitmap(),
@@ -164,7 +173,7 @@ fun CardThumbnails(photos: List<String>) {
     }
 }
 
-private fun decodeThumbnail(uri: String, target: Int = 480): Bitmap? = runCatching {
+internal fun decodeThumbnail(uri: String, target: Int = 480): Bitmap? = runCatching {
     val path = Uri.parse(uri).path ?: return null
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(path, bounds)
