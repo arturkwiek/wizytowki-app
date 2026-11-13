@@ -14,6 +14,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.wizytowki.R
 import com.wizytowki.data.ContactDetails
+import java.time.LocalDateTime
+import com.wizytowki.data.db.entities.BusinessCardEntity
+import com.wizytowki.data.JobHistoryItem
 import com.wizytowki.domain.ContactDraft
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -44,5 +47,24 @@ class ContactCardTest {
         compose.onAllNodes(hasText(context.getString(R.string.contact_email)) and hasClickAction()).onFirst().assertIsEnabled()
         compose.onNodeWithText("ACME S.A.").performClick()
         assertEquals(42L, opened)
+    }
+
+    @Test
+    fun showsJobHistoryAndCards() {
+        val details = ContactDetails(
+            1, 2, ContactDraft(firstName = "Anna", company = "Nowa Firma S.A.", positionPl = "Kierownik"),
+            listOf(BusinessCardEntity(id = 1, personId = 1, frontPhotoPath = "/missing.jpg", event = "Targi 2026")),
+            listOf(
+                JobHistoryItem(2, "Nowa Firma S.A.", "Kierownik", "", LocalDateTime.of(2026, 3, 1, 0, 0), null, current = true),
+                JobHistoryItem(1, "Stara Firma Sp. z o.o.", "Analityk", "", LocalDateTime.of(2024, 1, 1, 0, 0), LocalDateTime.of(2026, 2, 28, 0, 0), current = false),
+            ),
+        )
+        compose.setContent { Column { ContactCard(details) {} } }
+
+        compose.onNodeWithText(context.getString(R.string.contact_history)).assertIsDisplayed()
+        compose.onNodeWithText("Analityk · Stara Firma Sp. z o.o.").assertIsDisplayed()
+        compose.onNodeWithText("01.2024 – 02.2026").assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.contact_cards, 1)).assertIsDisplayed()
+        compose.onNodeWithText("Targi 2026").assertIsDisplayed()
     }
 }

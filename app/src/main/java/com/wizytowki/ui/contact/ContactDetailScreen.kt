@@ -32,8 +32,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.wizytowki.R
 import com.wizytowki.data.ContactDetails
+import com.wizytowki.data.JobHistoryItem
+import com.wizytowki.data.db.entities.BusinessCardEntity
 import com.wizytowki.domain.ContactComparison
 import com.wizytowki.domain.ContactField
+import com.wizytowki.ui.preview.CardThumbnails
 import com.wizytowki.ui.preview.fieldLabel
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -116,13 +119,45 @@ fun ContactCard(details: ContactDetails, onOpenCompany: (Long) -> Unit) {
         }
     }
 
-    details.cards.firstOrNull()?.let { last ->
-        val date = last.scannedAt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
-        val where = listOf(last.event, last.location).filter { it.isNotBlank() }.joinToString(" · ")
-        Text(
-            stringResource(R.string.contact_cards_summary, details.cards.size, date) + if (where.isNotEmpty()) " · $where" else "",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+    if (details.jobs.any { !it.current }) {
+        Text(stringResource(R.string.contact_history), style = MaterialTheme.typography.titleMedium)
+        details.jobs.forEach { job -> JobRow(job) { onOpenCompany(job.companyId) } }
+    }
+
+    if (details.cards.isNotEmpty()) {
+        Text(stringResource(R.string.contact_cards, details.cards.size), style = MaterialTheme.typography.titleMedium)
+        details.cards.forEach { card -> ScannedCard(card) }
+    }
+}
+
+/** One job of the history (WF-34): position, company and dates. */
+@Composable
+private fun JobRow(job: JobHistoryItem, onOpenCompany: () -> Unit) {
+    val month = DateTimeFormatter.ofPattern("MM.yyyy")
+    val from = job.dateFrom?.format(month).orEmpty()
+    val to = if (job.current) stringResource(R.string.contact_job_now) else job.dateTo?.format(month).orEmpty()
+    Card(modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onOpenCompany)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                listOf(job.position, job.company).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { stringResource(R.string.company_no_name) },
+                style = MaterialTheme.typography.titleSmall,
+            )
+            if (job.department.isNotBlank()) Text(job.department, style = MaterialTheme.typography.bodyMedium)
+            Text("$from – $to", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** One scanned card of the person (WF-34): photos, date, event and place. */
+@Composable
+private fun ScannedCard(card: BusinessCardEntity) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            CardThumbnails(listOf(card.frontPhotoPath, card.backPhotoPath).filter { it.isNotBlank() }.map { "file://$it" })
+            Text(card.scannedAt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)), style = MaterialTheme.typography.bodyMedium)
+            val where = listOf(card.event, card.location).filter { it.isNotBlank() }.joinToString(" · ")
+            if (where.isNotEmpty()) Text(where, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

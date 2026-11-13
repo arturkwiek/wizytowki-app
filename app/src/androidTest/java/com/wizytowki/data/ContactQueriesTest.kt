@@ -85,4 +85,19 @@ class ContactQueriesTest {
         assertEquals("Prezes", details.people.single { it.firstName == "Jan" }.position)
         assertNull(queries.company(999).first())
     }
+
+    @Test
+    fun jobHistoryAndAllCardsAfterAJobChange() = runBlocking {
+        val first = ContactDraft(firstName = "Anna", lastName = "Nowak", company = "Stara Firma Sp. z o.o.", positionPl = "Analityk")
+        val id = repository.saveNew(first, scan("h1.jpg", event = "Targi 2025")).personId
+        val saved = repository.savedContacts().single()
+        repository.update(saved, first.copy(company = "Nowa Firma S.A.", positionPl = "Kierownik"), scan("h2.jpg", event = "Targi 2026"))
+
+        val details = queries.contact(id).first()!!
+
+        assertEquals(listOf("Kierownik" to "Nowa Firma S.A.", "Analityk" to "Stara Firma Sp. z o.o."), details.jobs.map { it.position to it.company })
+        assertEquals(listOf(true, false), details.jobs.map { it.current })
+        assertEquals(2, details.cards.size)
+        assertEquals(setOf("Targi 2025", "Targi 2026"), details.cards.map { it.event }.toSet())
+    }
 }
