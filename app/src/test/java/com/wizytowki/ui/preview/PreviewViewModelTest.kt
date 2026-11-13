@@ -4,6 +4,7 @@ import com.wizytowki.data.ContactRepository
 import com.wizytowki.data.ScanRecord
 import com.wizytowki.domain.ContactDraft
 import com.wizytowki.domain.Choice
+import com.wizytowki.domain.ContactField
 import com.wizytowki.domain.MatchReason
 import com.wizytowki.domain.SavedContact
 import com.wizytowki.extract.EntityExtractor
@@ -26,6 +27,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -172,5 +174,23 @@ class PreviewViewModelTest {
         vm.saveAsNew()
         assertEquals(1, contacts.saved.size)
         assertEquals(SaveState.SAVED, vm.ready.save)
+    }
+
+    @Test
+    fun `WF-20 edited fields are saved and typed phones normalized`() {
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor(), contacts)
+        assertEquals(listOf("f", "b"), vm.ready.photos)
+
+        vm.edit(ContactField.FIRST_NAME, listOf("  Łucja "))
+        vm.edit(ContactField.PHONES, listOf("+48600100200", "601 222 333", ""))
+        vm.save()
+
+        val contact = contacts.saved.single().first
+        assertEquals("Łucja", contact.firstName)
+        assertEquals(listOf("+48600100200", "+48601222333"), contact.phones)
+
+        vm.edit(ContactField.FIRST_NAME, listOf("after save"))
+        assertEquals("  Łucja ", vm.ready.draft.firstName)
+        assertFalse(vm.ready.editable)
     }
 }

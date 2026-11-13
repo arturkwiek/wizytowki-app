@@ -107,7 +107,7 @@ private fun FieldDiff.values(choice: Choice) = when (choice) {
 }
 
 @Composable
-private fun fieldLabel(field: ContactField): String {
+internal fun fieldLabel(field: ContactField): String {
     val name = stringResource(
         when (field) {
             ContactField.FIRST_NAME -> R.string.field_first_name

@@ -123,7 +123,8 @@ object ContactComparison {
         ContactField.NIP -> listOf(contact.nip)
     }.filter { it.isNotBlank() }
 
-    private fun ContactDraft.with(field: ContactField, values: List<String>): ContactDraft {
+    /** The contact with [field] set to [values] (the first one for single-value fields). */
+    fun ContactDraft.with(field: ContactField, values: List<String>): ContactDraft {
         val one = values.firstOrNull().orEmpty()
         return when (field) {
             ContactField.FIRST_NAME -> copy(firstName = one)
