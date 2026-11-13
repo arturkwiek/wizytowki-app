@@ -106,7 +106,9 @@ class RoomContactRepository @Inject constructor(
                 }
                 else -> person.currentCompanyId
             }
-            db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = person.comment, createdAt = person.createdAt))
+            // Notes from earlier scans stay; a new note is added below them (WF-23).
+            val comment = listOf(person.comment, contact.comment).filter { it.isNotBlank() }.distinct().joinToString("\n\n")
+            db.personDao().update(contact.toPerson(companyId, now).copy(id = personId, comment = comment, createdAt = person.createdAt))
             db.businessCardDao().insert(card.copy(personId = personId, scannedAt = now))
         }
     }
@@ -156,6 +158,7 @@ internal fun ContactDraft.toPerson(companyId: Long?, now: LocalDateTime) = Perso
     emails = emails.joinLines(),
     websites = websites.joinLines(),
     socialProfiles = social.joinLines(),
+    comment = comment,
     currentCompanyId = companyId,
     createdAt = now,
     updatedAt = now,

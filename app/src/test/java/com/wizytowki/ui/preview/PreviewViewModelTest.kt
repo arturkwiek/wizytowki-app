@@ -193,4 +193,20 @@ class PreviewViewModelTest {
         assertEquals("  Łucja ", vm.ready.draft.firstName)
         assertFalse(vm.ready.editable)
     }
+
+    @Test
+    fun `WF-23 typed and dictated comment is saved, also when updating a duplicate`() {
+        val vm = PreviewViewModel(StubDraftStore(ScanSession("f", "b")), recognizer, EntityExtractor(), contacts)
+        vm.editComment("Poznany na targach")
+        vm.addDictation("zadzwonić w poniedziałek")
+        vm.save()
+        assertEquals("Poznany na targach zadzwonić w poniedziałek", contacts.saved.single().first.comment)
+
+        contacts.existing = listOf(SavedContact(7, null, ContactDraft(firstName = "Jan", phones = listOf("+48600100200"))))
+        val dup = PreviewViewModel(StubDraftStore(ScanSession("f", backSkipped = true)), recognizer, EntityExtractor(), contacts)
+        dup.addDictation("druga rozmowa")
+        dup.save()
+        dup.confirmUpdate()
+        assertEquals("druga rozmowa", contacts.updated.single().second.comment)
+    }
 }

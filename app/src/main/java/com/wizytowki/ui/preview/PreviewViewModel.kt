@@ -123,6 +123,18 @@ class PreviewViewModel @Inject constructor(
         _state.value = ready.copy(draft = with(ContactComparison) { ready.draft.with(field, values) })
     }
 
+    /** Typed comment (WF-23, UI-08). */
+    fun editComment(text: String) = editDraft { it.copy(comment = text) }
+
+    /** Result of dictation, added to the comment (WF-23). */
+    fun addDictation(text: String) = editDraft { it.withDictation(text) }
+
+    private fun editDraft(change: (ContactDraft) -> ContactDraft) {
+        val ready = _state.value as? PreviewUiState.Ready ?: return
+        if (!ready.editable || ready.review != null) return
+        _state.value = ready.copy(draft = change(ready.draft))
+    }
+
     /** Choice for one field of the comparison. */
     fun choose(field: ContactField, choice: Choice) = updateReview { it.copy(choices = it.choices + (field to choice)) }
 
@@ -134,7 +146,7 @@ class PreviewViewModel @Inject constructor(
     /** Updates the saved person with the chosen values and adds this card to them. */
     fun confirmUpdate() = persist { ready, scan ->
         val review = ready.review ?: return@persist ready
-        contacts.update(review.match.saved, review.result, scan)
+        contacts.update(review.match.saved, review.result.copy(comment = review.new.comment), scan)
         finished(ready, SaveState.UPDATED)
     }
 

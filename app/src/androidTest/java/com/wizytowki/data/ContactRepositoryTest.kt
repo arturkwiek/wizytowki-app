@@ -120,4 +120,13 @@ class ContactRepositoryTest {
         assertNull(person.currentCompanyId)
         assertEquals("", db.businessCardDao().getCardsByPerson(id).first().single().backPhotoPath)
     }
+
+    @Test
+    fun commentIsSavedAndLaterNotesAreAdded() = runBlocking {
+        val first = ContactDraft(firstName = "Ewa", lastName = "Lis", comment = "Targi Poznań")
+        val id = repository.saveNew(first, ScanRecord(photo("c1.jpg"), null, ""))
+        repository.update(repository.savedContacts().single(), first.copy(comment = "Oferta wysłana"), ScanRecord(photo("c2.jpg"), null, ""))
+
+        assertEquals("Targi Poznań\n\nOferta wysłana", db.personDao().getPersonById(id).first()!!.comment)
+    }
 }
