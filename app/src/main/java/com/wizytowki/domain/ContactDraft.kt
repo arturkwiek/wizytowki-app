@@ -23,6 +23,8 @@ data class ContactDraft(
     val departmentEn: String = "",
     val addressPl: String = "",
     val addressEn: String = "",
+    /** The user's own note, typed or dictated (WF-23). Not compared between scans: notes add up. */
+    val comment: String = "",
 ) {
     /** Anything belonging to the company record: name, NIP, address or position there. */
     val hasCompanyData: Boolean
@@ -45,7 +47,15 @@ data class ContactDraft(
         departmentEn = departmentEn.trim(),
         addressPl = addressPl.trim(),
         addressEn = addressEn.trim(),
+        comment = comment.trim(),
     )
+
+    /** Dictated text added to the comment (WF-23), separated by a space. */
+    fun withDictation(text: String): ContactDraft {
+        val spoken = text.trim()
+        if (spoken.isEmpty()) return this
+        return copy(comment = if (comment.isBlank()) spoken else comment.trimEnd() + " " + spoken)
+    }
 
     companion object {
         /**

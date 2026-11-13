@@ -68,4 +68,13 @@ class ContactDraftTest {
         val contact = ContactDraft.from(CardMerger.merge(listOf(e(EntityType.FIRST_NAME, "Anna"), e(EntityType.PHONE, "+48600100200"))))
         assertFalse(contact.hasCompanyData)
     }
+
+    @Test
+    fun `WF-23 dictation is added to the comment`() {
+        val typed = ContactDraft(comment = "Spotkanie na targach.").withDictation("  oddzwonić w piątek ")
+        assertEquals("Spotkanie na targach. oddzwonić w piątek", typed.comment)
+        assertEquals("call back", ContactDraft().withDictation("call back").comment)
+        assertEquals(typed, typed.withDictation("   "))
+        assertEquals("notatka", ContactDraft(comment = "  notatka \n").cleaned().comment)
+    }
 }
