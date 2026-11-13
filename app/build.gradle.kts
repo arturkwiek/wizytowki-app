@@ -1,3 +1,6 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +8,16 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("kotlin-parcelize")
 }
+
+/** Short hash of the current commit, with "+zmiany" when the working tree has uncommitted changes. */
+fun gitCommit(): String = runCatching {
+    fun git(vararg args: String) = providers.exec { commandLine("git", *args) }.standardOutput.asText.get().trim()
+    val hash = git("rev-parse", "--short", "HEAD")
+    if (git("status", "--porcelain", "--untracked-files=no").isEmpty()) hash else "$hash+zmiany"
+}.getOrDefault("?")
+
+/** When this build was made, e.g. "13.11.2026 21:50". */
+fun buildTime(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"))
 
 android {
     namespace = "com.wizytowki"
@@ -19,6 +32,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+
+        // Shown on the home screen, so the owner can tell which build is installed on the phone.
+        buildConfigField("String", "GIT_COMMIT", "\"${gitCommit()}\"")
+        buildConfigField("String", "BUILD_TIME", "\"${buildTime()}\"")
     }
 
     buildTypes {
@@ -39,6 +56,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
