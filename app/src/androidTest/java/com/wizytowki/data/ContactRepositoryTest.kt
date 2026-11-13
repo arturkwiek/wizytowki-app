@@ -62,6 +62,25 @@ class ContactRepositoryTest {
     }
 
     @Test
+    fun savedContactReadsBackTheSameData() = runBlocking {
+        val contact = ContactDraft(
+            firstName = "Grażyna",
+            lastName = "Wiśniewska",
+            phones = listOf("+48600100200"),
+            emails = listOf("g.wisniewska@nt.pl"),
+            company = "Nowe Technologie S.A.",
+            positionPl = "Księgowa",
+            departmentEn = "Finance",
+            addressEn = "5 Polna Street, 00-625 Warsaw",
+        )
+        val id = repository.saveNew(contact, ScanRecord(photo("f3.jpg"), null, ""))
+
+        val saved = repository.savedContacts().single()
+        assertEquals(id, saved.personId)
+        assertEquals(contact, saved.contact)
+    }
+
+    @Test
     fun personWithoutCompanyAndBack() = runBlocking {
         val id = repository.saveNew(ContactDraft(firstName = "Anna", phones = listOf("+48600100200")), ScanRecord(photo("f2.jpg"), null, ""))
 

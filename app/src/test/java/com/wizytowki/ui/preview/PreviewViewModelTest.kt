@@ -3,6 +3,7 @@ package com.wizytowki.ui.preview
 import com.wizytowki.data.ContactRepository
 import com.wizytowki.data.ScanRecord
 import com.wizytowki.domain.ContactDraft
+import com.wizytowki.domain.SavedContact
 import com.wizytowki.extract.EntityExtractor
 import com.wizytowki.extract.EntityType
 import com.wizytowki.ocr.CardRecognizer
@@ -43,6 +44,8 @@ private class FakeContacts(var fail: Boolean = false) : ContactRepository {
         saved += contact to scan
         return saved.size.toLong()
     }
+
+    override suspend fun savedContacts(): List<SavedContact> = emptyList()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

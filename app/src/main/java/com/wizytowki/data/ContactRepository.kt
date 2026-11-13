@@ -9,8 +9,10 @@ import com.wizytowki.data.db.entities.CompanyEntity
 import com.wizytowki.data.db.entities.EmploymentHistoryEntity
 import com.wizytowki.data.db.entities.PersonEntity
 import com.wizytowki.domain.ContactDraft
+import com.wizytowki.domain.SavedContact
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.LocalDateTime
@@ -24,6 +26,9 @@ data class ScanRecord(val frontUri: String, val backUri: String?, val rawText: S
 interface ContactRepository {
     /** Saves a new person (with company, position and the scanned card); returns the person id. */
     suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): Long
+
+    /** All saved people with their current company and position, for finding duplicates (WF-32). */
+    suspend fun savedContacts(): List<SavedContact>
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -69,7 +74,32 @@ class RoomContactRepository @Inject constructor(
             personId
         }
     }
+
+    override suspend fun savedContacts(): List<SavedContact> = db.withTransaction {
+        db.personDao().getAllPersons().first().map { person ->
+            val company = person.currentCompanyId?.let { db.companyDao().getCompanyById(it).first() }
+            val job = db.employmentHistoryDao().getHistoryByPerson(person.id).first().firstOrNull { it.isCurrent }
+            SavedContact(person.id, company?.id, contactOf(person, company, job))
+        }
+    }
 }
+
+internal fun contactOf(person: PersonEntity, company: CompanyEntity?, job: EmploymentHistoryEntity?) = ContactDraft(
+    firstName = person.firstName,
+    lastName = person.lastName,
+    phones = person.phones.splitLines(),
+    emails = person.emails.splitLines(),
+    websites = person.websites.splitLines(),
+    social = person.socialProfiles.splitLines(),
+    company = company?.name.orEmpty(),
+    nip = company?.nip.orEmpty(),
+    positionPl = job?.positionPl.orEmpty(),
+    positionEn = job?.positionEn.orEmpty(),
+    departmentPl = job?.departmentPl.orEmpty(),
+    departmentEn = job?.departmentEn.orEmpty(),
+    addressPl = company?.addressPl.orEmpty(),
+    addressEn = company?.addressEn.orEmpty(),
+)
 
 /** Several values in one column, one per line (the schema of Etap 0). */
 internal fun List<String>.joinLines() = filter { it.isNotBlank() }.distinct().joinToString("\n")
