@@ -58,6 +58,8 @@ private class FakeContacts(var fail: Boolean = false) : ContactRepository {
 
     override suspend fun mergePeople(keep: SavedContact, removeId: Long, result: ContactDraft) = Unit
     override suspend fun splitCard(cardId: Long, contact: ContactDraft): Long = 99
+    override suspend fun editContact(personId: Long, contact: ContactDraft) = Unit
+    override suspend fun addNote(personId: Long, note: String) = Unit
 
     var existing: List<SavedContact> = emptyList()
     val updated = mutableListOf<Pair<SavedContact, ContactDraft>>()

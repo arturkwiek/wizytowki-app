@@ -94,6 +94,15 @@ interface ContactRepository {
      * position, like a new save); returns the new person's id.
      */
     suspend fun splitCard(cardId: Long, contact: ContactDraft): Long
+
+    /**
+     * Correction of a saved contact by the user (#115): the data is replaced as typed, without adding
+     * to the job history – a job change is recorded when the new card is scanned.
+     */
+    suspend fun editContact(personId: Long, contact: ContactDraft)
+
+    /** A note added later, typed or dictated (WF-23, #115); kept below the earlier comments. */
+    suspend fun addNote(personId: Long, note: String)
 }
 
 /** Card photos kept for good: moved out of the scan draft, which is deleted after saving. */
@@ -174,6 +183,55 @@ class RoomContactRepository @Inject constructor(
             if (company != null) db.employmentHistoryDao().insert(contact.toEmployment(personId, company.id, now))
             db.businessCardDao().moveCard(cardId, personId)
             personId
+        }
+    }
+
+    override suspend fun editContact(personId: Long, contact: ContactDraft) {
+        val now = LocalDateTime.now()
+        db.withTransaction {
+            val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
+            val company = person.currentCompanyId?.let { db.companyDao().getCompanyById(it).first() }
+            val job = db.employmentHistoryDao().getHistoryByPerson(personId).first().firstOrNull { it.isCurrent }
+            val companyId = when {
+                !contact.hasCompanyData -> {
+                    job?.let { db.employmentHistoryDao().delete(it.id) }
+                    null
+                }
+                company != null && (CompanyMatcher.matches(contact, company.toSaved()) || company.name.isBlank() && contact.company.isBlank()) -> {
+                    // The same company: only its address and NIP follow the edit; renaming is done on the company card.
+                    db.companyDao().update(
+                        company.copy(
+                            addressPl = contact.addressPl,
+                            addressEn = contact.addressEn,
+                            nip = contact.nip.ifBlank { company.nip },
+                            updatedAt = now,
+                        ),
+                    )
+                    company.id
+                }
+                else -> linkCompany(contact, now).id
+            }
+            if (companyId != null) {
+                val edited = contact.toEmployment(personId, companyId, now)
+                if (job != null) {
+                    db.employmentHistoryDao().update(edited.copy(id = job.id, dateFrom = job.dateFrom))
+                } else {
+                    db.employmentHistoryDao().insert(edited)
+                }
+            }
+            db.personDao().update(
+                contact.toPerson(companyId, now).copy(id = personId, comment = person.comment, createdAt = person.createdAt),
+            )
+        }
+    }
+
+    override suspend fun addNote(personId: Long, note: String) {
+        val text = note.trim()
+        if (text.isEmpty()) return
+        db.withTransaction {
+            val person = db.personDao().getPersonById(personId).first() ?: error("Person $personId was deleted")
+            val comment = if (person.comment.isBlank()) text else person.comment + NOTE_SEPARATOR + text
+            db.personDao().update(person.copy(comment = comment, updatedAt = LocalDateTime.now()))
         }
     }
 
@@ -302,6 +360,9 @@ internal fun contactOf(person: PersonEntity, company: CompanyEntity?, job: Emplo
 
 /** Several values in one column, one per line (the schema of Etap 0). */
 internal fun List<String>.joinLines() = filter { it.isNotBlank() }.distinct().joinToString("\n")
+
+/** Blank line between notes added at different times (WF-23). */
+private const val NOTE_SEPARATOR = "\n\n"
 
 internal fun String.splitLines() = split('\n').map { it.trim() }.filter { it.isNotEmpty() }
 

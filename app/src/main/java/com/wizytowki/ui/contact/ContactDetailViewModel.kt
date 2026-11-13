@@ -22,6 +22,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Note being added on the person card (#115). */
+data class NoteState(val text: String = "", val saving: Boolean = false, val failed: Boolean = false)
+
 sealed interface ContactDetailState {
     data object Loading : ContactDetailState
 
@@ -52,6 +55,36 @@ class ContactDetailViewModel @Inject constructor(
 
     private val _splitFailed = MutableStateFlow(false)
     val splitFailed: StateFlow<Boolean> = _splitFailed.asStateFlow()
+
+    private val _note = MutableStateFlow(NoteState())
+
+    /** A note being written on the card (#115). */
+    val note: StateFlow<NoteState> = _note.asStateFlow()
+
+    fun editNote(text: String) {
+        _note.value = _note.value.copy(text = text, failed = false)
+    }
+
+    fun addDictation(text: String) {
+        _note.value = _note.value.copy(text = ContactDraft(comment = _note.value.text).withDictation(text).comment, failed = false)
+    }
+
+    /** Adds the note below the earlier comments; the card refreshes from the database. */
+    fun saveNote() {
+        val text = _note.value.text
+        if (text.isBlank() || _note.value.saving) return
+        _note.value = _note.value.copy(saving = true, failed = false)
+        viewModelScope.launch {
+            _note.value = try {
+                contacts.addNote(personId, text)
+                NoteState()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _note.value.copy(saving = false, failed = true)
+            }
+        }
+    }
 
     /**
      * Manual split (WF-35): the card belongs to someone else. Its data is read again from the stored

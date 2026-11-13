@@ -127,6 +127,12 @@
     <string name="merge_failed">Nie udało się scalić kontaktów.</string>
     <string name="split_action">Przenieś do nowego kontaktu</string>
     <string name="split_failed">Nie udało się przenieść wizytówki.</string>
+    <string name="edit_contact_action">Edytuj</string>
+    <string name="edit_contact_title">Edycja kontaktu</string>
+    <string name="edit_contact_note">Poprawki nie trafiają do historii zatrudnienia. Zmianę pracy zapisz, skanując nową wizytówkę.</string>
+    <string name="note_title">Dodaj notatkę</string>
+    <string name="note_add">Zapisz notatkę</string>
+    <string name="note_failed">Nie udało się zapisać notatki.</string>
     <string name="company_missing">Ta firma nie istnieje (mogła zostać usunięta).</string>
     <string name="company_no_name">Firma bez nazwy</string>
     <string name="company_address_pl">Adres (PL)</string>

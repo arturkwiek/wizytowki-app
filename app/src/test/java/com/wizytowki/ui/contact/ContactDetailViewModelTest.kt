@@ -43,6 +43,8 @@ class ContactDetailViewModelTest {
 
     private val split = mutableListOf<Pair<Long, ContactDraft>>()
     private var failSplit = false
+    private val edited = mutableListOf<Pair<Long, ContactDraft>>()
+    private val notes = mutableListOf<Pair<Long, String>>()
     private val repository = object : ContactRepository {
         override suspend fun saveNew(contact: ContactDraft, scan: ScanRecord): SavedChange = error("unused")
         override suspend fun savedContacts(): List<SavedContact> = emptyList()
@@ -54,6 +56,8 @@ class ContactDetailViewModelTest {
             split += cardId to contact
             return 99
         }
+        override suspend fun editContact(personId: Long, contact: ContactDraft) { edited += personId to contact }
+        override suspend fun addNote(personId: Long, note: String) { notes += personId to note }
     }
 
     @Before
@@ -117,5 +121,24 @@ class ContactDetailViewModelTest {
 
     private companion object {
         const val NL = "\n"
+    }
+
+    @Test
+    fun `#115 typed and dictated note is added and the field cleared`() {
+        val vm = vm()
+        vm.editNote("Oddzwonić")
+        vm.addDictation("po targach")
+        vm.saveNote()
+
+        assertEquals(listOf(7L to "Oddzwonić po targach"), notes)
+        assertEquals("", vm.note.value.text)
+    }
+
+    @Test
+    fun `empty note is not saved`() {
+        val vm = vm()
+        vm.editNote("   ")
+        vm.saveNote()
+        assertTrue(notes.isEmpty())
     }
 }

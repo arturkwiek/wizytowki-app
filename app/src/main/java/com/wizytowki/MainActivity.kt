@@ -33,6 +33,8 @@ import com.wizytowki.ui.contact.CompanyDetailScreen
 import com.wizytowki.ui.contact.CompanyDetailViewModel
 import com.wizytowki.ui.contact.ContactDetailScreen
 import com.wizytowki.ui.contact.ContactDetailViewModel
+import com.wizytowki.ui.contact.EditContactScreen
+import com.wizytowki.ui.contact.EditContactViewModel
 import com.wizytowki.ui.contact.MergeScreen
 import com.wizytowki.ui.contact.MergeViewModel
 import com.wizytowki.ui.home.HomeScreen
@@ -69,12 +71,14 @@ object Routes {
     const val COMPANY_DETAIL = "company_detail/{id}"
     const val MERGE = "merge/{id}"
     const val BROWSE = "browse"
+    const val CONTACT_EDIT = "contact_edit/{id}"
     const val SETTINGS = "settings"
 
     fun scan(resume: Boolean = false) = if (resume) "scan?${ScanViewModel.ARG_RESUME}=true" else "scan"
     fun contactDetail(id: Long) = "contact_detail/$id"
     fun companyDetail(id: Long) = "company_detail/$id"
     fun merge(id: Long) = "merge/$id"
+    fun contactEdit(id: Long) = "contact_edit/$id"
 }
 
 private data class NavLink(@StringRes val label: Int, val route: String)
@@ -132,10 +136,17 @@ fun WizytowkiNavigation() {
                 viewModel = hiltViewModel(),
                 onOpenCompany = { navController.navigate(Routes.companyDetail(it)) },
                 onMerge = { navController.navigate(Routes.merge(it)) },
+                onEdit = { navController.navigate(Routes.contactEdit(it)) },
                 // The card moved to a new contact: show that contact instead of this one.
                 onOpenContact = { navController.navigate(Routes.contactDetail(it)) { popUpTo(Routes.HOME) } },
                 onBack = { navController.popBackStack() },
             )
+        }
+        composable(
+            Routes.CONTACT_EDIT,
+            arguments = listOf(navArgument(EditContactViewModel.ARG_ID) { type = NavType.LongType }),
+        ) {
+            EditContactScreen(viewModel = hiltViewModel(), onDone = { navController.popBackStack() })
         }
         composable(
             Routes.MERGE,

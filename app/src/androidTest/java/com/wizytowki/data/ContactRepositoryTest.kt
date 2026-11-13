@@ -246,4 +246,31 @@ class ContactRepositoryTest {
         assertEquals(1, people.map { it.companyId }.toSet().size)
         assertEquals("Księgowa", people.single { it.personId == anna }.contact.positionPl)
     }
+
+    @Test
+    fun editCorrectsDataWithoutHistoryAndNotesAreAdded() = runBlocking {
+        val first = ContactDraft(firstName = "Lukasz", lastName = "Kowalski", company = "ACME S.A.", positionPl = "Kierownk", comment = "z targów")
+        val id = repository.saveNew(first, ScanRecord(photo("e1.jpg"), null, "")).personId
+
+        repository.editContact(id, first.copy(firstName = "Łukasz", positionPl = "Kierownik", addressPl = "ul. Długa 5, 00-001 Warszawa", comment = ""))
+        repository.addNote(id, "Oddzwonić w piątek")
+
+        val after = repository.savedContacts().single()
+        assertEquals("Łukasz", after.contact.firstName)
+        assertEquals("Kierownik", after.contact.positionPl)
+        assertEquals("ul. Długa 5, 00-001 Warszawa", after.contact.addressPl)
+        assertEquals(1, db.employmentHistoryDao().getHistoryByPerson(id).first().size)
+        assertEquals("z targów\n\nOddzwonić w piątek", db.personDao().getPersonById(id).first()!!.comment)
+    }
+
+    @Test
+    fun editToAnotherCompanyMovesTheCurrentJob() = runBlocking {
+        val id = repository.saveNew(ContactDraft(firstName = "Ewa", company = "Akme"), ScanRecord(photo("e2.jpg"), null, "")).personId
+
+        repository.editContact(id, ContactDraft(firstName = "Ewa", company = "Zupełnie Inna Sp. z o.o."))
+
+        val jobs = db.employmentHistoryDao().getHistoryByPerson(id).first()
+        assertEquals(1, jobs.size)
+        assertEquals("Zupełnie Inna Sp. z o.o.", repository.savedContacts().single().contact.company)
+    }
 }
