@@ -24,6 +24,13 @@ interface PersonDao {
     @Query("SELECT COUNT(*) FROM persons")
     fun countPersons(): Flow<Int>
 
+    /** Most recently added or updated people first (home screen). */
+    @Query("SELECT * FROM persons ORDER BY updatedAt DESC LIMIT :limit")
+    fun recentPersons(limit: Int): Flow<List<PersonEntity>>
+
+    @Query("SELECT * FROM persons WHERE currentCompanyId = :companyId ORDER BY lastName, firstName")
+    fun personsOfCompany(companyId: Long): Flow<List<PersonEntity>>
+
     @Query("SELECT * FROM persons WHERE firstName LIKE :query OR lastName LIKE :query")
     fun searchPersons(query: String): Flow<List<PersonEntity>>
 

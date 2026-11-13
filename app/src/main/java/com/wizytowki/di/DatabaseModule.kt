@@ -1,7 +1,9 @@
 package com.wizytowki.di
 
 import android.content.Context
+import com.wizytowki.data.ContactQueries
 import com.wizytowki.data.ContactRepository
+import com.wizytowki.data.RoomContactQueries
 import com.wizytowki.data.RoomContactRepository
 import com.wizytowki.data.db.DatabaseKeyProvider
 import com.wizytowki.data.db.WizytowkiDatabase
@@ -41,4 +43,7 @@ object DatabaseModule {
 
     @Provides
     fun provideContactRepository(repository: RoomContactRepository): ContactRepository = repository
+
+    @Provides
+    fun provideContactQueries(queries: RoomContactQueries): ContactQueries = queries
 }

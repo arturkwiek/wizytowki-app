@@ -18,6 +18,9 @@ interface EmploymentHistoryDao {
     @Query("SELECT * FROM employment_history WHERE personId = :personId ORDER BY dateFrom DESC")
     fun getHistoryByPerson(personId: Long): Flow<List<EmploymentHistoryEntity>>
 
+    @Query("SELECT * FROM employment_history WHERE isCurrent = 1")
+    fun currentJobs(): Flow<List<EmploymentHistoryEntity>>
+
     @Query("DELETE FROM employment_history WHERE id = :id")
     suspend fun delete(id: Long)
 }
