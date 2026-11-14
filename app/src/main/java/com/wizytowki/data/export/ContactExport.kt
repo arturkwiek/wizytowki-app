@@ -183,7 +183,8 @@ object ContactExport {
     private const val CRLF = "\r\n"
     private const val MAX_LINE_OCTETS = 75
     private const val MULTI = " | "
-    private const val BOM = "﻿"
+    /** Byte order mark, so Excel reads the CSV as UTF-8. */
+    private val BOM = Char(0xFEFF).toString()
     private val DATE_TIME: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 }
 

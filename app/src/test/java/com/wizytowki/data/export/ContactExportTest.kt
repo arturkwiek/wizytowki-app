@@ -11,6 +11,8 @@ import org.junit.Test
 import java.time.LocalDateTime
 
 class ContactExportTest {
+    private val BOM = Char(0xFEFF).toString()
+
     private val scanned = LocalDateTime.of(2026, 11, 13, 21, 50)
 
     private val lukasz = ContactDetails(
@@ -79,8 +81,8 @@ class ContactExportTest {
     fun `CSV has a header, one row per person, quoting and BOM`() {
         val csv = ContactExport.csv(listOf(lukasz, ContactDetails(4, null, ContactDraft(firstName = "Anna", lastName = "Nowak \"Ania\""), emptyList())))
 
-        assertTrue(csv.startsWith("﻿first_name,last_name,company,nip,"))
-        val rows = csv.removePrefix("﻿").split("\r\n").filter { it.isNotEmpty() }
+        assertTrue(csv.startsWith(BOM + "first_name,last_name,company,nip,"))
+        val rows = csv.removePrefix(BOM + "").split("\r\n").filter { it.isNotEmpty() }
         assertEquals(3, rows.size)
         assertTrue(rows[1].startsWith("Łukasz,Żółkiewski,ACME Polska Sp. z o.o.,5260250995,Dyrektor sprzedaży,Sales Director,,,+48600100200 | +48221234567,"))
         assertTrue(rows[1].contains("\"ul. Długa 5, 00-001 Warszawa\""))
