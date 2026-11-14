@@ -4,6 +4,8 @@ import android.content.Context
 import com.wizytowki.data.ContactQueries
 import com.wizytowki.data.ContactRepository
 import com.wizytowki.data.RoomContactQueries
+import com.wizytowki.ui.contact.ContentResolverExportTarget
+import com.wizytowki.ui.contact.ExportTarget
 import com.wizytowki.data.RoomContactRepository
 import com.wizytowki.data.db.DatabaseKeyProvider
 import com.wizytowki.data.db.WizytowkiDatabase
@@ -46,4 +48,7 @@ object DatabaseModule {
 
     @Provides
     fun provideContactQueries(queries: RoomContactQueries): ContactQueries = queries
+
+    @Provides
+    fun provideExportTarget(target: ContentResolverExportTarget): ExportTarget = target
 }

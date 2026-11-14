@@ -86,6 +86,14 @@ fun ContactDetailScreen(
             ContactDetailState.Loading -> Unit
             ContactDetailState.Missing -> Text(stringResource(R.string.contact_missing), style = MaterialTheme.typography.bodyLarge)
             is ContactDetailState.Ready -> {
+                // The phone's own "new contact" form with this contact's data (#122).
+                val context = LocalContext.current
+                OutlinedButton(
+                    onClick = { QuickActions.open(context, QuickActions.addToPhoneContacts(s.details.contact)) },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.export_to_phone))
+                }
                 Button(onClick = { onEdit(s.details.personId) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.edit_contact_action))
                 }
