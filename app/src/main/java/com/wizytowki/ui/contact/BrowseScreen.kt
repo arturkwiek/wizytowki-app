@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -155,6 +156,8 @@ fun BrowseScreen(viewModel: BrowseViewModel, onOpenContact: (Long) -> Unit, onOp
                 }
             }
         }
+        // Export of all saved contacts to vCard, CSV or JSON (#122).
+        ExportSection(hiltViewModel())
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(R.string.action_back))
         }

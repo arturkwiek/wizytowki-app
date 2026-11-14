@@ -109,6 +109,17 @@
     <string name="browse_companies">Companies (%1$d)</string>
     <string name="browse_empty">Nothing found.</string>
     <string name="browse_company_people">People: %1$d</string>
+    <string name="export_action">Export contacts</string>
+    <string name="export_choose">File format</string>
+    <string name="export_vcard">vCard (.vcf)</string>
+    <string name="export_vcard_info">For phone contacts, Google Contacts and Outlook.</string>
+    <string name="export_csv">CSV (.csv)</string>
+    <string name="export_csv_info">For Excel and spreadsheets, one row per person.</string>
+    <string name="export_json">JSON (.json)</string>
+    <string name="export_json_info">Complete data for programs: employment history and cards.</string>
+    <string name="export_done">Contacts exported: %1$d</string>
+    <string name="export_failed">Could not save the file.</string>
+    <string name="export_to_phone">Add to phone contacts</string>
     <string name="contact_missing">This contact does not exist (it may have been deleted).</string>
     <string name="contact_no_name">No name</string>
     <string name="contact_call">Call</string>
